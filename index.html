@@ -1,517 +1,3120 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Untraceable Browser</title>
-  <link rel="icon" href="https://aicreation-file.miricanvas.com/a00/production/private/txt2img/2026/05/23/14/cf83ba53-7234-47e7-9fc4-5e638a88062b.png">
-  <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@300&display=swap" rel="stylesheet">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400..900&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=M+PLUS+Rounded+1c:wght@400;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#ffffff">
+  <link id="tabIcon" rel="icon" type="image/jpeg" href="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTPMiIU5F8QnFLsyFCsrCeJNUtk53s79A-6xHHBAcTF9g&amp;s=10">
+  <title id="tabTitle">ホーム - Classroom</title>
+  <style>
+    :root {
+      --bg: #fff;
+      --surface: #fff;
+      --surface-2: #f2f2f2;
+      --surface-3: #e5e5e5;
+      --text: #0f0f0f;
+      --muted: #606060;
+      --line: #e5e5e5;
+      --accent: #ff8a3d;
+      --accent-dark: #e96f1f;
+      --on-accent: #2d1608;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .08);
+      --radius: 12px;
+    }
+    :root[data-theme="dark"] {
+      --bg: #0f0f0f;
+      --surface: #0f0f0f;
+      --surface-2: #272727;
+      --surface-3: #3f3f3f;
+      --text: #f1f1f1;
+      --muted: #aaa;
+      --line: #3f3f3f;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .35);
+    }
+
+    * { box-sizing: border-box; }
+    html { background: var(--bg); color: var(--text); }
+    body {
+      margin: 0;
+      min-width: 320px;
+      font-family: Arial, "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
+      font-size: 14px;
+      line-height: 1.45;
+      background: var(--bg);
+    }
+    button, input { font: inherit; }
+    button { color: inherit; }
+    button, a { -webkit-tap-highlight-color: transparent; }
+    a { color: inherit; text-decoration: none; }
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .icon {
+      width: 22px;
+      height: 22px;
+      display: block;
+      fill: currentColor;
+      flex: 0 0 auto;
+    }
+    .icon.small { width: 18px; height: 18px; }
+    .icon.large { width: 28px; height: 28px; }
+
+    .topbar {
+      height: 64px;
+      position: fixed;
+      inset: 0 0 auto;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      gap: 22px;
+      padding: 0 24px;
+      background: rgba(255,255,255,.96);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    :root[data-theme="dark"] .topbar { background: rgba(15,15,15,.96); }
+    .menu-button, .round-button, .text-button {
+      border: 0;
+      background: transparent;
+      cursor: pointer;
+    }
+    .menu-button, .round-button {
+      width: 40px;
+      height: 40px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+    }
+    .menu-button:hover, .round-button:hover { background: var(--surface-2); }
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      min-width: 148px;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -.04em;
+    }
+    .brand-mark {
+      width: 30px;
+      height: 22px;
+      display: grid;
+      place-items: center;
+      color: white;
+      background: var(--accent);
+      border-radius: 7px;
+    }
+    .brand-mark .icon { width: 15px; height: 15px; }
+    .brand-sub { font-size: 11px; font-weight: 400; color: var(--muted); letter-spacing: 0; }
+    .search-wrap {
+      position: relative;
+      height: 42px;
+      display: flex;
+      flex: 1 1 680px;
+      max-width: 720px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .search-input {
+      width: 100%;
+      min-width: 80px;
+      padding: 0 16px;
+      color: var(--text);
+      background: var(--surface);
+      border: 1px solid #c6c6c6;
+      border-right: 0;
+      border-radius: 22px 0 0 22px;
+      outline: 0;
+    }
+    .search-input:focus { border-color: #1c62b9; box-shadow: inset 1px 0 #1c62b9, inset 0 1px #1c62b9, inset 0 -1px #1c62b9; }
+    .search-button {
+      width: 64px;
+      display: grid;
+      place-items: center;
+      background: var(--surface-2);
+      border: 1px solid #c6c6c6;
+      border-radius: 0 22px 22px 0;
+      cursor: pointer;
+    }
+    .search-button:hover { background: var(--surface-3); }
+    .search-history-panel {
+      position: absolute;
+      top: 48px;
+      left: 0;
+      right: 0;
+      z-index: 25;
+      overflow: hidden;
+      color: var(--text);
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.16);
+    }
+    .search-history-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px 8px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .search-history-clear {
+      padding: 4px 0;
+      color: #2563eb;
+      background: transparent;
+      border: 0;
+      cursor: pointer;
+    }
+    .search-history-list { display: grid; gap: 2px; padding: 0 6px 7px; }
+    .search-history-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      padding: 8px;
+      border-radius: 8px;
+    }
+    .search-history-row:hover { background: var(--surface-2); }
+    .search-history-term {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      min-width: 0;
+      flex: 1;
+      padding: 0;
+      color: var(--text);
+      text-align: left;
+      background: transparent;
+      border: 0;
+      cursor: pointer;
+    }
+    .search-history-term span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .search-history-remove {
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      color: var(--muted);
+      background: transparent;
+      border: 0;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+    .search-history-remove:hover { color: var(--text); background: var(--surface-3); }
+    .history-row { position: relative; }
+    .history-remove-button {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 2;
+      padding: 6px 9px;
+      color: var(--muted);
+      background: color-mix(in srgb, var(--surface) 90%, transparent);
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      cursor: pointer;
+    }
+    .history-remove-button:hover { color: var(--text); background: var(--surface-2); }
+    .history-clear-button { margin-left: auto; }
+    .top-actions { display: flex; align-items: center; gap: 5px; margin-left: auto; }
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #16a34a;
+    }
+    .status.busy .status-dot { background: #eab308; }
+    .status.error .status-dot { background: #dc2626; }
+
+    .layout { display: flex; padding-top: 64px; }
+    .sidebar {
+      width: 240px;
+      height: calc(100vh - 64px);
+      position: fixed;
+      top: 64px;
+      left: 0;
+      overflow-y: auto;
+      padding: 16px 12px;
+      background: var(--surface);
+      border-right: 1px solid var(--line);
+      transition: transform .2s ease, width .2s ease;
+      z-index: 10;
+    }
+    .sidebar.collapsed { width: 76px; }
+    .sidebar.collapsed .nav-label, .sidebar.collapsed .nav-heading { display: none; }
+    .sidebar.collapsed .nav-item { justify-content: center; padding-inline: 0; }
+    .nav-section { padding: 0 0 12px; margin-bottom: 12px; border-bottom: 1px solid var(--line); }
+    .nav-heading {
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+    }
+    .nav-item {
+      width: 100%;
+      min-height: 42px;
+      display: flex;
+      align-items: center;
+      gap: 22px;
+      padding: 0 14px;
+      border: 0;
+      border-radius: 10px;
+      background: transparent;
+      cursor: pointer;
+      text-align: left;
+    }
+    .nav-item:hover, .nav-item.active { background: var(--surface-2); font-weight: 700; }
+    .nav-item.active .icon { color: var(--accent); }
+    .nav-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .content {
+      width: calc(100% - 240px);
+      min-height: calc(100vh - 64px);
+      margin-left: 240px;
+      transition: width .2s ease, margin .2s ease;
+    }
+    .sidebar.collapsed + .content { width: calc(100% - 76px); margin-left: 76px; }
+    .page { max-width: 1520px; margin: 0 auto; padding: 22px 28px 60px; }
+
+    .chip-row {
+      display: flex;
+      gap: 9px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      padding: 0 0 22px;
+    }
+    .chip-row::-webkit-scrollbar { display: none; }
+    .chip {
+      height: 34px;
+      flex: 0 0 auto;
+      padding: 0 15px;
+      border: 0;
+      border-radius: 8px;
+      background: var(--surface-2);
+      cursor: pointer;
+    }
+    .chip:hover, .chip.active { color: var(--on-accent); background: var(--text); }
+    .page-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin: 4px 0 20px;
+    }
+    .page-title h1 { margin: 0; font-size: 22px; letter-spacing: -.03em; }
+    .page-title p { margin: 3px 0 0; color: var(--muted); font-size: 13px; }
+    .channel-header {
+      overflow: hidden;
+      margin: -2px 0 22px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+    }
+    .channel-banner {
+      height: 176px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      background: linear-gradient(120deg, #ffb45b, #e96f1f 52%, #7048b8);
+    }
+    .channel-banner img { width: 100%; height: 100%; display: block; object-fit: cover; }
+    .channel-profile {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      padding: 18px 22px 14px;
+    }
+    .channel-header-avatar {
+      width: 82px;
+      height: 82px;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      overflow: hidden;
+      color: white;
+      background: #737373;
+      border: 4px solid var(--surface);
+      border-radius: 50%;
+      font-size: 25px;
+      font-weight: 700;
+      margin-top: -54px;
+    }
+    .channel-header-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .channel-profile-main { min-width: 0; flex: 1; }
+    .channel-profile-main h2 { overflow: hidden; margin: 0 0 4px; font-size: 23px; text-overflow: ellipsis; white-space: nowrap; }
+    .channel-profile-main p { margin: 0; color: var(--muted); font-size: 13px; }
+    .channel-subscribe-button { flex: 0 0 auto; }
+    .channel-about { max-width: 780px; margin: 0; padding: 0 22px 16px; color: var(--muted); font-size: 13px; white-space: pre-wrap; }
+    .channel-tabs {
+      display: flex;
+      gap: 25px;
+      overflow-x: auto;
+      padding: 0 22px;
+      border-top: 1px solid var(--line);
+    }
+    .channel-dashboard {
+      display: grid;
+      gap: 14px;
+      padding: 16px 22px 20px;
+      border-top: 1px solid var(--line);
+      background: color-mix(in srgb, var(--surface-2) 48%, var(--surface));
+    }
+    .channel-stat-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .channel-stat {
+      min-width: 0;
+      padding: 12px 14px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+    }
+    .channel-stat-label {
+      display: block;
+      margin-bottom: 3px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+    .channel-stat-value {
+      display: block;
+      overflow: hidden;
+      font-size: 16px;
+      font-weight: 700;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .channel-tools {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .channel-filter-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      flex: 1;
+      color: var(--muted);
+    }
+    .channel-filter-input {
+      width: min(100%, 420px);
+      height: 36px;
+      padding: 0 12px;
+      color: var(--text);
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      outline: 0;
+    }
+    .channel-filter-input:focus { border-color: #3b82f6; }
+    .channel-sort-select {
+      height: 36px;
+      padding: 0 9px;
+      color: var(--text);
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .channel-tab {
+      min-height: 48px;
+      padding: 0 2px;
+      color: var(--muted);
+      background: transparent;
+      border: 0;
+      border-bottom: 3px solid transparent;
+      cursor: pointer;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .channel-tab.active, .channel-tab:hover { color: var(--text); border-bottom-color: var(--text); }
+    .video-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 30px 16px;
+    }
+    .video-card { min-width: 0; cursor: pointer; }
+    .thumb {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      background: #ddd;
+      border-radius: 10px;
+    }
+    .thumb img { width: 100%; height: 100%; display: block; object-fit: cover; transition: transform .2s ease; }
+    .video-card:hover .thumb img { transform: scale(1.025); }
+    .duration {
+      position: absolute;
+      right: 6px;
+      bottom: 6px;
+      padding: 2px 5px;
+      color: white;
+      background: rgba(0,0,0,.82);
+      border-radius: 4px;
+      font-size: 12px;
+      line-height: 1.2;
+    }
+    .card-body { display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 10px; padding-top: 10px; }
+    .channel-avatar {
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      color: white;
+      background: #737373;
+      border-radius: 50%;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .channel-avatar img {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+      border-radius: 50%;
+    }
+    .avatar-fallback { display: block; }
+    .avatar-fallback[hidden] { display: none !important; }
+    .card-title {
+      display: -webkit-box;
+      overflow: hidden;
+      margin: -2px 0 5px;
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1.35;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+    }
+    .card-meta { display: flex; flex-wrap: wrap; gap: 2px 4px; color: var(--muted); font-size: 12px; }
+    .card-meta span:not(:last-child)::after { content: "・"; margin-left: 4px; }
+
+    .skeleton { pointer-events: none; }
+    .skeleton .thumb, .skeleton .line, .skeleton .avatar {
+      background: linear-gradient(100deg, #eee 30%, #f8f8f8 45%, #eee 60%);
+      background-size: 200% 100%;
+      animation: shine 1.2s infinite;
+    }
+    .skeleton .line { height: 12px; margin-top: 12px; border-radius: 4px; }
+    .skeleton .line.compact { width: 62%; }
+    .skeleton .avatar { width: 36px; height: 36px; border-radius: 50%; }
+    @keyframes shine { to { background-position: -200% 0; } }
+
+    .empty {
+      display: grid;
+      place-items: center;
+      min-height: 320px;
+      padding: 30px;
+      color: var(--muted);
+      text-align: center;
+    }
+    .empty .icon { margin: 0 auto 12px; color: #a3a3a3; }
+    .empty h2 { margin: 0 0 5px; color: var(--text); font-size: 18px; }
+    .empty p { max-width: 420px; margin: 0; }
+    .retry-button {
+      height: 38px;
+      margin-top: 18px;
+      padding: 0 18px;
+      color: white;
+      background: var(--text);
+      border: 0;
+      border-radius: 20px;
+      cursor: pointer;
+    }
+
+    .watch-page { max-width: 1180px; margin: 0 auto; }
+    .watch-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 24px; }
+    .player-wrap { position: relative; overflow: hidden; background: #000; border-radius: 12px; aspect-ratio: 16 / 9; }
+    .player-wrap video { width: 100%; height: 100%; display: block; object-fit: contain; background: #000; }
+    .player-wrap audio { display: none; }
+    .player-loading {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      display: grid;
+      place-items: center;
+      color: white;
+      background: rgba(0, 0, 0, .64);
+      transition: opacity .2s ease;
+    }
+    .loading-content { display: grid; justify-items: center; gap: 11px; font-size: 13px; }
+    .loading-spinner {
+      width: 38px;
+      height: 38px;
+      border: 4px solid rgba(255,255,255,.35);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .player-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      min-height: 42px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .quality-select {
+      min-width: 112px;
+      height: 34px;
+      padding: 0 9px;
+      color: var(--text);
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      cursor: pointer;
+    }
+    .quality-select:disabled { cursor: not-allowed; opacity: .65; }
+    .watch-title { margin: 18px 0 9px; font-size: 21px; line-height: 1.35; }
+    .watch-meta { display: flex; align-items: center; justify-content: space-between; gap: 15px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+    .channel-line { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .channel-line strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .channel-line small { color: var(--muted); }
+    .watch-actions { display: flex; gap: 8px; }
+    .pill-button {
+      height: 38px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 14px;
+      border: 0;
+      border-radius: 20px;
+      background: var(--surface-2);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .pill-button:hover { background: var(--surface-3); }
+    .pill-button:disabled { cursor: wait; opacity: .6; }
+    .subscribe-button {
+      color: var(--on-accent);
+      background: var(--accent);
+      font-weight: 700;
+    }
+    .subscribe-button:hover { background: var(--accent-dark); }
+    .subscribe-button.subscribed {
+      color: var(--text);
+      background: var(--surface-2);
+    }
+    .subscribe-button.subscribed:hover { background: var(--surface-3); }
+    .description {
+      max-height: 120px;
+      overflow: hidden;
+      margin-top: 14px;
+      padding: 14px;
+      white-space: pre-wrap;
+      background: var(--surface-2);
+      border-radius: 10px;
+      font-size: 13px;
+    }
+    .side-title { margin: 0 0 14px; font-size: 17px; }
+    .side-list { display: grid; gap: 14px; }
+    .side-list.playlist-side { gap: 5px; }
+    .playlist-side-row {
+      display: grid;
+      grid-template-columns: 112px minmax(0, 1fr);
+      gap: 9px;
+      width: 100%;
+      padding: 6px;
+      color: var(--text);
+      background: transparent;
+      border: 0;
+      border-radius: 8px;
+      cursor: pointer;
+      text-align: left;
+    }
+    .playlist-side-row:hover { background: var(--surface-2); }
+    .playlist-side-row.active { background: color-mix(in srgb, var(--accent) 18%, var(--surface)); }
+    .playlist-side-row .thumb { border-radius: 6px; }
+    .playlist-side-row h3 { overflow: hidden; margin: 2px 0 3px; font-size: 12px; line-height: 1.35; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+    .playlist-side-row p { overflow: hidden; margin: 0; color: var(--muted); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+    .playlist-side-label { margin: -7px 0 11px; color: var(--muted); font-size: 12px; }
+    .side-list .video-card { display: grid; grid-template-columns: 142px minmax(0, 1fr); gap: 10px; }
+    .side-list .thumb { border-radius: 7px; }
+    .side-list .card-body { display: block; padding: 0; }
+    .side-list .channel-avatar, .side-list .card-meta { display: none; }
+    .side-list .card-title { font-size: 13px; }
+    .load-more-wrap { display: flex; justify-content: center; gap: 8px; padding: 28px 0 4px; }
+    .load-more-button, .playlist-create button, .playlist-open-button {
+      min-height: 40px;
+      padding: 0 18px;
+      color: var(--text);
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      cursor: pointer;
+    }
+    .load-more-button:hover, .playlist-create button:hover, .playlist-open-button:hover { background: var(--surface-3); }
+    .load-more-button:disabled { cursor: wait; opacity: .6; }
+    .playlist-file-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: -10px 0 22px; }
+    .playlist-file-actions button, .playlist-file-actions label {
+      display: inline-flex;
+      align-items: center;
+      min-height: 38px;
+      padding: 0 14px;
+      color: var(--text);
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      cursor: pointer;
+    }
+    .playlist-file-actions button:hover, .playlist-file-actions label:hover { background: var(--surface-3); }
+    .playlist-file-actions input { display: none; }
+    .channel-link { cursor: pointer; }
+    .channel-link:hover { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .playlist-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 12px;
+    }
+    .playlist-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+      padding: 16px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+    }
+    .playlist-card-body { min-width: 0; flex: 1; }
+    .playlist-thumbnail { width: 88px; height: 50px; flex: 0 0 auto; object-fit: cover; border-radius: 6px; background: var(--surface-3); }
+    .playlist-card h3 { overflow: hidden; margin: 0 0 4px; text-overflow: ellipsis; white-space: nowrap; }
+    .playlist-card p { margin: 0; color: var(--muted); font-size: 12px; }
+    .playlist-card-actions { display: flex; gap: 6px; flex: 0 0 auto; }
+    .playlist-delete-button, .playlist-remove-button {
+      color: var(--muted);
+      border: 0;
+      background: transparent;
+      cursor: pointer;
+    }
+    .playlist-delete-button:hover, .playlist-remove-button:hover { color: #dc2626; }
+    .playlist-create {
+      display: flex;
+      gap: 8px;
+      max-width: 560px;
+      margin: 0 0 22px;
+    }
+    .playlist-create input {
+      min-width: 0;
+      flex: 1;
+      height: 40px;
+      padding: 0 12px;
+      color: var(--text);
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 9px;
+    }
+    .playlist-detail { display: grid; gap: 14px; }
+    .playlist-video-row { position: relative; }
+    .playlist-video-row .playlist-remove-button { position: absolute; top: 4px; right: 0; z-index: 1; }
+    .playlist-picker-list { display: grid; gap: 8px; margin: 16px 0; }
+    .playlist-picker-list button { width: 100%; padding: 11px 13px; color: var(--text); background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; cursor: pointer; text-align: left; }
+    .playlist-picker-list button:hover { background: var(--surface-3); }
+
+    .subscription-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 12px;
+    }
+    .subscription-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+      padding: 14px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+    }
+    .subscription-card .channel-avatar { width: 48px; height: 48px; }
+    .subscription-card-body { min-width: 0; flex: 1; }
+    .subscription-card h3 {
+      overflow: hidden;
+      margin: 0 0 3px;
+      font-size: 14px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .subscription-card p { margin: 0; color: var(--muted); font-size: 12px; }
+    .unsubscribe-button {
+      flex: 0 0 auto;
+      color: var(--muted);
+      border: 0;
+      background: transparent;
+      cursor: pointer;
+    }
+    .unsubscribe-button:hover { color: var(--text); }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 24px;
+      z-index: 40;
+      max-width: calc(100vw - 30px);
+      padding: 12px 18px;
+      color: white;
+      background: #333;
+      border-radius: 7px;
+      box-shadow: 0 4px 20px rgba(0,0,0,.2);
+      transform: translate(-50%, 90px);
+      transition: transform .2s ease;
+    }
+    .toast.show { transform: translate(-50%, 0); }
+    .hidden { display: none !important; }
+
+    .settings-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      background: rgba(0, 0, 0, .55);
+    }
+    .settings-panel {
+      width: min(100%, 560px);
+      max-height: min(720px, calc(100vh - 36px));
+      overflow-y: auto;
+      padding: 24px;
+      color: var(--text);
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: 0 20px 70px rgba(0,0,0,.28);
+    }
+    .settings-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    .settings-header h2 { margin: 0; font-size: 20px; }
+    .settings-group { padding: 17px 0; border-top: 1px solid var(--line); }
+    .settings-label { display: block; margin-bottom: 8px; font-weight: 700; }
+    .settings-help { margin: -2px 0 12px; color: var(--muted); font-size: 12px; }
+    .settings-select, .settings-input {
+      width: 100%;
+      height: 42px;
+      padding: 0 12px;
+      color: var(--text);
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      outline: 0;
+    }
+    .settings-select:focus, .settings-input:focus { border-color: #3b82f6; }
+    .settings-input + .settings-input { margin-top: 9px; }
+    .settings-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .switch {
+      width: 48px;
+      height: 28px;
+      position: relative;
+      flex: 0 0 auto;
+    }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .switch-track {
+      position: absolute;
+      inset: 0;
+      background: #a3a3a3;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: background .2s ease;
+    }
+    .switch-track::after {
+      content: "";
+      width: 22px;
+      height: 22px;
+      position: absolute;
+      left: 3px;
+      top: 3px;
+      background: white;
+      border-radius: 50%;
+      transition: transform .2s ease;
+    }
+    .switch input:checked + .switch-track { background: var(--accent); }
+    .switch input:checked + .switch-track::after { transform: translateX(20px); }
+    .settings-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 20px; }
+    .settings-button {
+      min-height: 38px;
+      padding: 0 16px;
+      border: 0;
+      border-radius: 19px;
+      background: var(--surface-2);
+      cursor: pointer;
+    }
+    .settings-button.primary { color: var(--on-accent); background: var(--accent); }
+    .settings-button:hover { filter: brightness(.96); }
+
+    @media (max-width: 980px) {
+      .sidebar { width: 76px; }
+      .sidebar .nav-label, .sidebar .nav-heading { display: none; }
+      .sidebar .nav-item { justify-content: center; padding-inline: 0; }
+      .content, .sidebar.collapsed + .content { width: calc(100% - 76px); margin-left: 76px; }
+      .watch-layout { grid-template-columns: 1fr; }
+      .side-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .video-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .side-list .video-card { display: block; }
+      .side-list .card-body { padding-top: 7px; }
+    }
+    @media (max-width: 680px) {
+      .topbar { gap: 8px; padding: 0 12px; }
+      .topbar > .menu-button { display: none; }
+      .brand { min-width: 120px; font-size: 16px; }
+      .brand-sub { display: none; }
+      .search-wrap { order: 3; position: absolute; top: 70px; left: 12px; right: 12px; max-width: none; }
+      .top-actions { margin-left: 0; }
+      .status { display: none; }
+      .layout { padding-top: 126px; }
+      .sidebar { display: none; }
+      .content, .sidebar.collapsed + .content { width: 100%; margin-left: 0; }
+      .page { padding: 16px 12px 45px; }
+      .video-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px 10px; }
+      .card-body { display: block; padding-top: 7px; }
+      .channel-avatar { display: none; }
+      .card-title { font-size: 13px; }
+      .card-meta { font-size: 11px; }
+      .watch-title { font-size: 18px; }
+      .watch-meta { align-items: flex-start; flex-direction: column; }
+      .watch-actions { width: 100%; overflow-x: auto; }
+      .side-list { grid-template-columns: 1fr; }
+      .side-list .video-card { display: grid; grid-template-columns: 142px minmax(0, 1fr); }
+      .channel-banner { height: 115px; }
+      .channel-profile { align-items: flex-start; flex-wrap: wrap; padding: 14px; }
+      .channel-header-avatar { width: 64px; height: 64px; margin-top: -40px; }
+      .channel-profile-main h2 { font-size: 18px; }
+      .channel-subscribe-button { margin-left: 82px; }
+      .channel-about { padding-inline: 14px; }
+      .channel-tabs { padding-inline: 14px; gap: 18px; }
+      .channel-dashboard { padding-inline: 14px; }
+      .channel-stat-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .channel-tools { align-items: stretch; flex-direction: column; }
+      .channel-filter-input { width: 100%; }
+      .channel-sort-select { width: 100%; }
+    }
+    @media (max-width: 390px) {
+      .brand { min-width: 102px; }
+      .video-grid { grid-template-columns: 1fr; }
+    }
+  </style>
 </head>
 <body>
+  <svg width="0" height="0" class="sr-only" aria-hidden="true">
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.1v13.8c0 .8.9 1.3 1.6.9l10.3-6.9c.6-.4.6-1.3 0-1.7L9.6 4.2C8.9 3.8 8 4.3 8 5.1z"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><path d="m20.1 18.7-4.5-4.5a7.3 7.3 0 1 0-1.4 1.4l4.5 4.5 1.4-1.4zM5.3 10.4a5.1 5.1 0 1 1 10.2 0 5.1 5.1 0 0 1-10.2 0z"/></symbol>
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="m12 3 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1V10l9-7z"/></symbol>
+    <symbol id="i-compass" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm3.9 6.1-1.8 4.2-4.2 1.8 1.8-4.2 4.2-1.8zM12 20a8 8 0 1 1 0-16 8 8 0 0 1 0 16z"/></symbol>
+    <symbol id="i-news" viewBox="0 0 24 24"><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3zm0 2a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h14V5H5zm2 3h4v4H7V8zm6 0h4v2h-4V8zm0 4h4v2h-4v-2zm-6 2h4v2H7v-2z"/></symbol>
+    <symbol id="i-library" viewBox="0 0 24 24"><path d="M4 4h3v16H4V4zm5 0h3v16H9V4zm5.2.2 2.9-.7 3.7 15.6-2.9.7-3.7-15.6z"/></symbol>
+    <symbol id="i-history" viewBox="0 0 24 24"><path d="M12 4a8 8 0 1 1-6.3 3.1L4 5.5V11h5.5L7 8.5A6 6 0 1 0 12 6v2l4 3-4 3v-2.2A4 4 0 1 1 8.4 8.4L12 12V4z"/></symbol>
+    <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 11a4 4 0 1 0-3.9-4.8A4 4 0 0 0 16 11zm-8 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm8 2c-2.7 0-5 1.4-5 3.2V19h10v-2.8c0-1.8-2.3-3.2-5-3.2zM8 13c-2.2 0-4 1.1-4 2.5V18h5v-1.8c0-1.2.5-2.2 1.4-3A5.8 5.8 0 0 0 8 13z"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16zm1-13h-2v6l5 3 1-1.7-4-2.3V7z"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></symbol>
+    <symbol id="i-like" viewBox="0 0 24 24"><path d="M7 10v10H4V10h3zm2 10h8.5c.9 0 1.7-.6 2-1.4l1.5-5.1c.5-1.7-.8-3.5-2.6-3.5h-4.1l.6-3.2c.2-1.1-.5-2.2-1.5-2.5L13 4 9 9.2v10.8z"/></symbol>
+    <symbol id="i-share" viewBox="0 0 24 24"><path d="m18 16.1-9.1-5.2c.1-.3.1-.6.1-.9s0-.6-.1-.9L18 3.9A3 3 0 1 0 17 2a3 3 0 0 0 .1.9L8 8.1A3 3 0 1 0 8 14l9.1 5.2A3 3 0 1 0 18 16.1z"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 2 1 21h22L12 2zm1 15h-2v2h2v-2zm0-8h-2v6h2V9z"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M17.7 7.3A8 8 0 0 0 4 10H2l3.5 3.5L9 10H6a6 6 0 1 1-.1 5H3.8A8 8 0 1 0 17.7 7.3z"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M11 3h2v10.2l3.6-3.6 1.4 1.4-6 6-6-6 1.4-1.4 3.6 3.6V3zM4 19h16v2H4v-2z"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="m6.4 5 6 6 5.2-6 1.4 1.4-5.2 6 5.2 5.2-1.4 1.4-5.2-5.2-6 5.2L5 17.6l6-5.2-6-6L6.4 5z"/></symbol>
+    <symbol id="i-monitor" viewBox="0 0 24 24"><path d="M4 4h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-5v2h3v2H6v-2h3v-2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm0 2v10h16V6H4z"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="m19.4 13.5 1.7 1.3-2 3.4-2-.8a7.7 7.7 0 0 1-1.6.9L15.2 20h-4l-.3-1.7a7.7 7.7 0 0 1-1.6-.9l-2 .8-2-3.4L7 13.5a7 7 0 0 1 0-3l-1.7-1.3 2-3.4 2 .8a7.7 7.7 0 0 1 1.6-.9L11.2 4h4l.3 1.7a7.7 7.7 0 0 1 1.6.9l2-.8 2 3.4-1.7 1.3a7 7 0 0 1 0 3zM13.2 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.5 15.4A8.7 8.7 0 0 1 8.6 3.5 9.2 9.2 0 1 0 20.5 15.4z"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m9.2 17.2-4.4-4.4 1.4-1.4 3 3L17.8 5.8l1.4 1.4-10 10z"/></symbol>
+  </svg>
 
-<!-- 起動アニメーション -->
-<div id="bootOverlay">
-  <div id="bootLines">
-    <div class="boot-line" id="bl0">&gt; Initializing Secure Session...</div>
-    <div class="boot-line" id="bl1">&gt; Loading encryption modules...<span class="boot-ok" id="bl1ok"></span></div>
-    <div class="boot-line" id="bl2">&gt; Bypassing history tracking...<span class="boot-ok" id="bl2ok"></span></div>
-    <div class="boot-line" id="bl3">&gt; Mounting sandbox environment...<span class="boot-ok" id="bl3ok"></span></div>
-    <div class="boot-line" id="bl4">&gt; Done.<span class="boot-ok" id="bl4ok"></span></div>
-  </div>
-  <div id="bootBar"><div id="bootBarFill"></div></div>
-</div>
-
-<!-- ===== 地理ノート偽装オーバーレイ ===== -->
-<div id="disguiseOverlay">
-  <header id="geo-header">
-    <div class="geo-header-inner">
-      <div class="geo-logo">🌏 中2地理まとめ<span class="geo-logo-badge">STUDY</span></div>
-      <nav id="geo-nav">
-        <a href="#" class="geo-active" onclick="geoShowPage('home',this);return false;">ホーム</a>
-        <a href="#" onclick="geoShowPage('asia',this);return false;">アジア</a>
-        <a href="#" onclick="geoShowPage('europe',this);return false;">ヨーロッパ</a>
-        <a href="#" onclick="geoShowPage('africa',this);return false;">アフリカ</a>
-        <a href="#" onclick="geoShowPage('americas',this);return false;">南北アメリカ</a>
-        <a href="#" onclick="geoShowPage('quiz',this);return false;">一問一答</a>
-      </nav>
+  <header class="topbar">
+    <button class="menu-button" id="menuButton" type="button" aria-label="ナビゲーションを折りたたむ">
+      <svg class="icon"><use href="#i-menu"></use></svg>
+    </button>
+    <a class="brand" href="#home" aria-label="みかんTube ホーム">
+      <span class="brand-mark"><svg class="icon"><use href="#i-play"></use></svg></span>
+      <span>みかんTube</span><span style="font-size: 18px;">+</span>
+    </a>
+    <form class="search-wrap" id="searchForm" role="search">
+      <label class="sr-only" for="searchInput">検索</label>
+      <input id="searchInput" class="search-input" autocomplete="off" placeholder="検索" type="search">
+      <button class="search-button" type="submit" aria-label="検索">
+        <svg class="icon"><use href="#i-search"></use></svg>
+      </button>
+      <div class="search-history-panel hidden" id="searchHistoryPanel" role="listbox" aria-label="検索履歴"></div>
+    </form>
+    <div class="top-actions">
+      <button class="round-button" id="refreshButton" type="button" aria-label="再読み込み">
+        <svg class="icon"><use href="#i-refresh"></use></svg>
+      </button>
+      <button class="round-button" id="settingsButton" type="button" aria-label="設定">
+        <svg class="icon"><use href="#i-settings"></use></svg>
+      </button>
     </div>
   </header>
-  <div class="geo-container">
 
-    <!-- ホーム -->
-    <div id="geo-page-home" class="geo-page geo-active">
-      <div class="geo-hero">
-        <p class="geo-hero-label">中学2年生 社会・地理</p>
-        <h1>世界の<em>地理</em>まとめノート</h1>
-        <p>各地域の自然・産業・文化をわかりやすく整理。テスト直前の確認に使おう！</p>
-        <div class="geo-hero-tags">
-          <span class="geo-hero-tag">📍 アジア州</span><span class="geo-hero-tag">📍 ヨーロッパ州</span>
-          <span class="geo-hero-tag">📍 アフリカ州</span><span class="geo-hero-tag">📍 南北アメリカ</span><span class="geo-hero-tag">📍 オセアニア</span>
+  <div class="layout">
+    <aside class="sidebar" id="sidebar">
+      <nav>
+        <div class="nav-section">
+          <button class="nav-item active" data-route="home" type="button"><svg class="icon"><use href="#i-home"></use></svg><span class="nav-label">ホーム</span></button>
+          <button class="nav-item" data-route="trending" type="button"><svg class="icon"><use href="#i-compass"></use></svg><span class="nav-label">急上昇</span></button>
+          <button class="nav-item" data-route="news" type="button"><svg class="icon"><use href="#i-news"></use></svg><span class="nav-label">ニュース</span></button>
         </div>
-      </div>
-      <div class="geo-section-title">単元を選ぶ</div>
-      <div class="geo-chapter-grid">
-        <a href="#" class="geo-chapter-card" onclick="geoShowPage('asia',document.querySelector('#geo-nav a:nth-child(2)'));return false;">
-          <div class="geo-card-header"><div class="geo-card-region">CHAPTER 1</div><div class="geo-card-title">アジア州</div><div class="geo-card-sub">東・東南・南・西アジアの特色</div></div>
-          <div class="geo-card-body"><div class="geo-kw-list"><span class="geo-kw red">季節風</span><span class="geo-kw blue">ASEAN</span><span class="geo-kw green">稲作</span><span class="geo-kw red">中国経済</span><span class="geo-kw blue">石油産出</span></div></div>
-        </a>
-        <a href="#" class="geo-chapter-card" onclick="geoShowPage('europe',document.querySelector('#geo-nav a:nth-child(3)'));return false;">
-          <div class="geo-card-header"><div class="geo-card-region">CHAPTER 2</div><div class="geo-card-title">ヨーロッパ州</div><div class="geo-card-sub">EU統合と多様な文化</div></div>
-          <div class="geo-card-body"><div class="geo-kw-list"><span class="geo-kw blue">EU</span><span class="geo-kw green">混合農業</span><span class="geo-kw red">偏西風</span><span class="geo-kw blue">ユーロ</span><span class="geo-kw green">地中海農業</span></div></div>
-        </a>
-        <a href="#" class="geo-chapter-card" onclick="geoShowPage('africa',document.querySelector('#geo-nav a:nth-child(4)'));return false;">
-          <div class="geo-card-header"><div class="geo-card-region">CHAPTER 3</div><div class="geo-card-title">アフリカ州</div><div class="geo-card-sub">植民地の歴史と現在の課題</div></div>
-          <div class="geo-card-body"><div class="geo-kw-list"><span class="geo-kw red">モノカルチャー</span><span class="geo-kw blue">サハラ砂漠</span><span class="geo-kw green">植民地</span><span class="geo-kw red">レアメタル</span></div></div>
-        </a>
-        <a href="#" class="geo-chapter-card" onclick="geoShowPage('americas',document.querySelector('#geo-nav a:nth-child(5)'));return false;">
-          <div class="geo-card-header"><div class="geo-card-region">CHAPTER 4</div><div class="geo-card-title">南北アメリカ州</div><div class="geo-card-sub">多文化社会と大規模農業</div></div>
-          <div class="geo-card-body"><div class="geo-kw-list"><span class="geo-kw blue">NAFTA(USMCA)</span><span class="geo-kw green">適地適作</span><span class="geo-kw red">アマゾン開発</span><span class="geo-kw blue">多文化社会</span></div></div>
-        </a>
-        <a href="#" class="geo-chapter-card" onclick="geoShowPage('quiz',document.querySelector('#geo-nav a:nth-child(6)'));return false;">
-          <div class="geo-card-header"><div class="geo-card-region">PRACTICE</div><div class="geo-card-title">一問一答クイズ</div><div class="geo-card-sub">カードをタップして答えをチェック</div></div>
-          <div class="geo-card-body"><div class="geo-kw-list"><span class="geo-kw red">重要語句</span><span class="geo-kw blue">地名</span><span class="geo-kw green">統計・数値</span></div></div>
-        </a>
-      </div>
-      <div class="geo-content-section">
-        <h2>📌 テストによく出る！世界の基本データ</h2>
-        <table class="geo-table">
-          <thead><tr><th>項目</th><th>数値・内容</th><th>ポイント</th></tr></thead>
-          <tbody>
-            <tr><td>世界の人口</td><td>約<span class="geo-hl">80億人</span></td><td>アジアに約60%が集中</td></tr>
-            <tr><td>世界最大の国（面積）</td><td><span class="geo-hl">ロシア連邦</span></td><td>約1,710万km²（日本の約45倍）</td></tr>
-            <tr><td>世界最多人口の国</td><td><span class="geo-hl">インド</span>（中国を抜いた）</td><td>14億人以上、若い人口が多い</td></tr>
-            <tr><td>赤道が通る大陸</td><td>南アメリカ・アフリカ・アジア</td><td>熱帯雨林気候が広がる</td></tr>
-            <tr><td>本初子午線</td><td>経度<span class="geo-hl">0度</span>（ロンドン）</td><td>グリニッジ天文台を通る</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
+        <div class="nav-section">
+          <div class="nav-heading">ライブラリ</div>
+          <button class="nav-item" data-route="history" type="button"><svg class="icon"><use href="#i-history"></use></svg><span class="nav-label">履歴</span></button>
+          <button class="nav-item" data-route="playlists" type="button"><svg class="icon"><use href="#i-library"></use></svg><span class="nav-label">再生リスト</span></button>
+          <button class="nav-item" data-route="subscriptions" type="button"><svg class="icon"><use href="#i-users"></use></svg><span class="nav-label">登録チャンネル</span></button>
+        </div>
+      </nav>
+    </aside>
 
-    <!-- アジア -->
-    <div id="geo-page-asia" class="geo-page">
-      <div class="geo-section-title">アジア州 <span class="geo-section-subtitle">Chapter 1</span></div>
-      <div class="geo-content-section">
-        <div class="geo-tab-nav">
-          <button class="geo-tab-btn geo-active" onclick="geoSwitchTab(this,'geo-asia-tab1')">東アジア</button>
-          <button class="geo-tab-btn" onclick="geoSwitchTab(this,'geo-asia-tab2')">東南アジア</button>
-          <button class="geo-tab-btn" onclick="geoSwitchTab(this,'geo-asia-tab3')">南アジア</button>
-          <button class="geo-tab-btn" onclick="geoSwitchTab(this,'geo-asia-tab4')">西アジア</button>
+    <main class="content">
+      <section class="page" id="homePage">
+        <section class="channel-header hidden" id="channelHeader">
+          <div class="channel-banner" id="channelBanner"></div>
+          <div class="channel-profile">
+            <div class="channel-header-avatar" id="channelHeaderAvatar"></div>
+            <div class="channel-profile-main">
+              <h2 id="channelHeaderName">チャンネル</h2>
+              <p id="channelHeaderStats"></p>
+            </div>
+            <button class="pill-button subscribe-button channel-subscribe-button" id="channelSubscribeButton" type="button">チャンネル登録</button>
+          </div>
+          <p class="channel-about hidden" id="channelAbout"></p>
+          <nav class="channel-tabs" aria-label="チャンネルタブ">
+            <button class="channel-tab active" data-channel-tab="home" type="button" aria-selected="true">ホーム</button>
+            <button class="channel-tab" data-channel-tab="videos" type="button" aria-selected="false">動画</button>
+            <button class="channel-tab" data-channel-tab="shorts" type="button" aria-selected="false">ショート</button>
+            <button class="channel-tab" data-channel-tab="live" type="button" aria-selected="false">ライブ</button>
+            <button class="channel-tab" data-channel-tab="playlists" type="button" aria-selected="false">再生リスト</button>
+          </nav>
+           <section class="channel-dashboard hidden" id="channelDashboard" aria-label="チャンネル概要">
+             <div class="channel-stat-grid" id="channelStatGrid"></div>
+             <div class="channel-tools">
+               <label class="channel-filter-wrap" for="channelFilterInput">
+                 <svg class="icon small" aria-hidden="true"><use href="#i-search"></use></svg>
+                 <input class="channel-filter-input" id="channelFilterInput" type="search" placeholder="チャンネル内を検索" autocomplete="off">
+               </label>
+               <select class="channel-sort-select" id="channelSortSelect" aria-label="動画の並び順">
+                 <option value="latest">新しい順</option>
+                 <option value="popular">人気順</option>
+               </select>
+             </div>
+           </section>
+        </section>
+        <div class="chip-row" id="chips">
+          <button class="chip active" data-query="" type="button">すべて</button>
+          <button class="chip" data-query="音楽" type="button">音楽</button>
+          <button class="chip" data-query="ニュース" type="button">ニュース</button>
+          <button class="chip" data-query="ゲーム" type="button">ゲーム</button>
+          <button class="chip" data-query="料理" type="button">料理</button>
+          <button class="chip" data-query="テクノロジー" type="button">テクノロジー</button>
+          <button class="chip" data-query="学習" type="button">学習</button>
         </div>
-        <div id="geo-asia-tab1" class="geo-tab-content geo-active">
-          <div class="geo-point-box"><div class="geo-point-label">🔑 最重要ポイント</div>中国は「世界の工場」から「世界の市場」へ転換。沿岸部と内陸部の<strong>経済格差（地域格差）</strong>が問題。</div>
-          <table class="geo-table"><thead><tr><th>国・地域</th><th>特色</th><th>キーワード</th></tr></thead><tbody>
-            <tr><td><strong>中国</strong></td><td>人口約14億人。経済特区を設けて外国企業を誘致し、急速に経済成長</td><td>経済特区、一人っ子政策（廃止）、漢族</td></tr>
-            <tr><td><strong>韓国</strong></td><td>サムスン・LGなど電子産業が発展。K-POPなどの韓流文化も輸出</td><td>ICT産業、韓流、ハングル</td></tr>
-            <tr><td><strong>日本</strong></td><td>加工貿易で発展。近年は少子高齢化・貿易摩擦が課題</td><td>少子高齢化、加工貿易、技術立国</td></tr>
-          </tbody></table>
-          <div class="geo-map-note"><h3>🗺 東アジアの気候</h3><p>夏に南東の<strong>季節風（モンスーン）</strong>が吹き込み、高温多湿になる。冬は北西の季節風で寒冷・乾燥。稲作には夏の高温多雨が適している。</p></div>
+        <div class="page-title">
+          <div>
+            <h1 id="pageHeading">おすすめの動画</h1>
+            <p id="pageSubheading">動画を取得中...</p>
+          </div>
+          <button class="text-button hidden history-clear-button" id="clearHistoryButton" type="button">履歴をすべて削除</button>
         </div>
-        <div id="geo-asia-tab2" class="geo-tab-content">
-          <div class="geo-point-box blue"><div class="geo-point-label">🔑 最重要ポイント</div><strong>ASEAN（東南アジア諸国連合）</strong>：10か国が加盟。工業化が進み「ASEAN諸国」は世界の工場に。</div>
-          <table class="geo-table"><thead><tr><th>テーマ</th><th>内容</th></tr></thead><tbody>
-            <tr><td>主な農産物</td><td>米（タイ・ベトナムは世界的輸出国）、天然ゴム、パーム油、コーヒー</td></tr>
-            <tr><td>宗教の分布</td><td>タイ・ミャンマー→仏教、インドネシア・マレーシア→イスラム教、フィリピン→キリスト教</td></tr>
-            <tr><td>工業化</td><td>外国企業の工場誘致→輸出指向型工業。賃金が安く、労働力が豊富</td></tr>
-            <tr><td>熱帯林の開発</td><td>農地・プランテーションへの転換で熱帯林が急減→環境問題</td></tr>
-          </tbody></table>
+        <div class="video-grid" id="videoGrid"></div>
+        <div class="load-more-wrap" id="loadMoreWrap">
+          <button class="load-more-button" id="loadMoreButton" type="button">さらに読み込む</button>
+          <button class="load-more-button hidden" id="loadAllButton" type="button">チャンネル動画をすべて読み込む</button>
         </div>
-        <div id="geo-asia-tab3" class="geo-tab-content">
-          <div class="geo-point-box green"><div class="geo-point-label">🔑 最重要ポイント</div>インドはIT産業で急成長。英語教育と理系人材が豊富で、ICT大国に。</div>
-          <table class="geo-table"><thead><tr><th>国</th><th>特色</th></tr></thead><tbody>
-            <tr><td><strong>インド</strong></td><td>カースト制（身分制度）の残存。BRICSの一員。バンガロールはIT産業の中心地。<br>宗教：ヒンドゥー教が多数、イスラム教も多い</td></tr>
-            <tr><td><strong>バングラデシュ</strong></td><td>デルタ地帯で洪水が多い。縫製業（衣類）が主要産業</td></tr>
-          </tbody></table>
-          <div class="geo-point-box"><div class="geo-point-label">💡 ガンジス川</div>ヒンドゥー教の聖なる川。流域に人口が集中し、農業・生活の場となっている。</div>
-        </div>
-        <div id="geo-asia-tab4" class="geo-tab-content">
-          <div class="geo-point-box"><div class="geo-point-label">🔑 最重要ポイント</div>西アジアは<strong>石油資源</strong>が豊富。OPECに多くの国が加盟し、世界の原油供給を左右する。</div>
-          <table class="geo-table"><thead><tr><th>項目</th><th>内容</th></tr></thead><tbody>
-            <tr><td>主な宗教</td><td>イスラム教（礼拝・断食・聖地メッカへの巡礼）</td></tr>
-            <tr><td>主要国</td><td>サウジアラビア、アラブ首長国連邦（UAE）、イラン、イラク</td></tr>
-            <tr><td>気候</td><td>砂漠気候が多い。乾燥地帯のため農業用水の確保が重要</td></tr>
-            <tr><td>石油収入</td><td>近年は観光・金融など産業の多角化を推進</td></tr>
-          </tbody></table>
-        </div>
-      </div>
-    </div>
+      </section>
 
-    <!-- ヨーロッパ -->
-    <div id="geo-page-europe" class="geo-page">
-      <div class="geo-section-title">ヨーロッパ州 <span class="geo-section-subtitle">Chapter 2</span></div>
-      <div class="geo-content-section">
-        <h2>🇪🇺 EU（ヨーロッパ連合）のしくみ</h2>
-        <div class="geo-point-box blue"><div class="geo-point-label">🔑 最重要ポイント</div>EUは経済・政治的な統合体。共通通貨<strong>ユーロ</strong>を採用（全加盟国ではない）。人・物・お金・サービスが国境を越えて自由に移動できる。</div>
-        <table class="geo-table"><thead><tr><th>項目</th><th>内容</th></tr></thead><tbody>
-          <tr><td>設立の流れ</td><td>EC（ヨーロッパ共同体）→ 1993年にEU発足</td></tr>
-          <tr><td>加盟国数</td><td>27か国（イギリスは2020年に離脱＝Brexit）</td></tr>
-          <tr><td>共通通貨</td><td>ユーロ（€）を採用。ただしスイス・ノルウェーなど非加盟国も</td></tr>
-          <tr><td>課題</td><td>東西ヨーロッパの経済格差、難民・移民問題、各国の主権との摩擦</td></tr>
-        </tbody></table>
-      </div>
-      <div class="geo-content-section">
-        <h2>🌾 ヨーロッパの農業</h2>
-        <div class="geo-flashcard-grid">
-          <div class="geo-flashcard" onclick="this.classList.toggle('geo-open')"><div class="geo-q">混合農業とは？</div><div class="geo-a">穀物栽培と家畜飼育を組み合わせた農業。北フランス・ドイツなど北西部で行われる。</div><span class="geo-tap-hint">タップで確認</span></div>
-          <div class="geo-flashcard" onclick="this.classList.toggle('geo-open')"><div class="geo-q">地中海農業の特色は？</div><div class="geo-a">夏は乾燥→オリーブ・ぶどう・柑橘類。冬は温暖で降水→小麦。スペイン・イタリア・ギリシャが中心。</div><span class="geo-tap-hint">タップで確認</span></div>
-          <div class="geo-flashcard" onclick="this.classList.toggle('geo-open')"><div class="geo-q">酪農が盛んな地域は？</div><div class="geo-a">デンマーク・オランダなど北海沿岸。冷涼な気候で牧草が育ちやすく、乳製品を輸出。</div><span class="geo-tap-hint">タップで確認</span></div>
-          <div class="geo-flashcard" onclick="this.classList.toggle('geo-open')"><div class="geo-q">偏西風の影響は？</div><div class="geo-a">大西洋から吹く偏西風と暖流（北大西洋海流）の影響で、高緯度のわりに温暖。西岸海洋性気候。</div><span class="geo-tap-hint">タップで確認</span></div>
+      <section class="page hidden" id="watchPage">
+        <div class="watch-page">
+          <button class="text-button" id="backButton" type="button">戻る</button>
+          <div class="watch-layout">
+            <div>
+              <div class="player-wrap">
+                <video id="player" controls playsinline preload="metadata"></video>
+                <audio id="audioPlayer" preload="auto"></audio>
+                <div class="player-loading hidden" id="playerLoading" aria-live="polite">
+                  <div class="loading-content">
+                    <span class="loading-spinner" aria-hidden="true"></span>
+                    <span id="playerLoadingText">動画を読み込み中…</span>
+                  </div>
+                </div>
+              </div>
+              <div class="player-toolbar">
+                <label for="qualitySelect">画質・音声</label>
+                <select class="quality-select" id="qualitySelect" aria-label="画質を選択" disabled>
+                  <option>読み込み中…</option>
+                </select>
+              </div>
+              <h1 class="watch-title" id="watchTitle"></h1>
+              <div class="watch-meta">
+                <div class="channel-line">
+                  <div class="channel-avatar" id="watchAvatar"></div>
+                  <div><strong id="watchAuthor"></strong><small id="watchStats"></small></div>
+                </div>
+                <div class="watch-actions">
+                  <button class="pill-button subscribe-button" id="subscribeButton" type="button" aria-pressed="false"><svg class="icon small"><use href="#i-check"></use></svg><span>チャンネル登録</span></button>
+                  <button class="pill-button" id="likeButton" type="button"><svg class="icon small"><use href="#i-like"></use></svg><span>評価</span></button>
+                  <button class="pill-button" id="addToPlaylistButton" type="button"><svg class="icon small"><use href="#i-library"></use></svg><span>再生リストに追加</span></button>
+                   <button class="pill-button" id="downloadButton" type="button" disabled><svg class="icon small"><use href="#i-download"></use></svg><span>音声付きDL</span></button>
+                </div>
+              </div>
+              <div class="description" id="watchDescription"></div>
+            </div>
+            <aside>
+               <h2 class="side-title" id="sideTitle">次の動画</h2>
+              <div class="side-list" id="nextList"></div>
+            </aside>
+          </div>
         </div>
-      </div>
-      <div class="geo-content-section">
-        <h2>🏭 ヨーロッパの工業</h2>
-        <table class="geo-table"><thead><tr><th>地域</th><th>特色</th></tr></thead><tbody>
-          <tr><td>ルール工業地帯（ドイツ）</td><td>石炭・鉄鉱石を使う重工業で発展。現在は機械・化学工業が中心</td></tr>
-          <tr><td>北イタリア</td><td>ミラノ周辺にファッション・機械工業が集中</td></tr>
-          <tr><td>エアバス（EU共同）</td><td>航空機を共同製造。EU統合のシンボル的産業</td></tr>
-        </tbody></table>
-      </div>
-    </div>
+      </section>
 
-    <!-- アフリカ -->
-    <div id="geo-page-africa" class="geo-page">
-      <div class="geo-section-title">アフリカ州 <span class="geo-section-subtitle">Chapter 3</span></div>
-      <div class="geo-content-section">
-        <h2>🌍 アフリカの自然と気候</h2>
-        <div class="geo-map-note"><h3>🗺 気候帯の配列（赤道から北・南へ）</h3><p>赤道付近→<strong>熱帯雨林</strong>（コンゴ盆地）→<strong>サバナ</strong>→<strong>砂漠</strong>（サハラ・ナミブ）→<strong>地中海性気候</strong>（南端・北端）</p></div>
-        <table class="geo-table"><thead><tr><th>地形・地物</th><th>内容</th></tr></thead><tbody>
-          <tr><td>サハラ砂漠</td><td>世界最大の砂漠。アフリカ大陸北部に広がる</td></tr>
-          <tr><td>ナイル川</td><td>世界最長の川。エジプトの農業を支える</td></tr>
-          <tr><td>コンゴ盆地</td><td>世界第2位の熱帯雨林。生物多様性の宝庫</td></tr>
-          <tr><td>キリマンジャロ山</td><td>アフリカ最高峰（5,895m）。タンザニア</td></tr>
-        </tbody></table>
-      </div>
-      <div class="geo-content-section">
-        <h2>📜 植民地支配の歴史と影響</h2>
-        <div class="geo-point-box"><div class="geo-point-label">🔑 最重要ポイント</div>19世紀、ヨーロッパ列強がアフリカをほぼ完全に植民地化。<strong>直線的な国境線</strong>は民族・文化を無視して引かれたため、現在も民族紛争の原因に。</div>
-        <table class="geo-table"><thead><tr><th>問題</th><th>内容</th></tr></thead><tbody>
-          <tr><td>モノカルチャー経済</td><td>特定の農産物・鉱産物だけに依存。価格変動の影響を受けやすい</td></tr>
-          <tr><td>公用語問題</td><td>旧宗主国の言語（英語・フランス語等）が公用語に→民族語の衰退</td></tr>
-          <tr><td>食料問題</td><td>人口増加・干ばつ・内戦で食料不足が続く地域も</td></tr>
-          <tr><td>レアメタル</td><td>コバルト・コルタンなど希少金属が豊富→産地紛争の原因にも</td></tr>
-        </tbody></table>
-        <div class="geo-point-box green"><div class="geo-point-label">📈 近年の変化</div>「アフリカの角」などで携帯電話の普及が急速進展。若い人口と経済成長で「アフリカの時代」とも言われる。</div>
-      </div>
-    </div>
-
-    <!-- 南北アメリカ -->
-    <div id="geo-page-americas" class="geo-page">
-      <div class="geo-section-title">南北アメリカ州 <span class="geo-section-subtitle">Chapter 4</span></div>
-      <div class="geo-content-section">
-        <div class="geo-tab-nav">
-          <button class="geo-tab-btn geo-active" onclick="geoSwitchTab(this,'geo-am-tab1')">北アメリカ</button>
-          <button class="geo-tab-btn" onclick="geoSwitchTab(this,'geo-am-tab2')">南アメリカ</button>
+      <section class="page hidden" id="playlistPage">
+        <div class="page-title">
+          <div>
+            <h1 id="playlistHeading">再生リスト</h1>
+            <p id="playlistSubheading">このブラウザに保存されます</p>
+          </div>
+          <button class="text-button hidden" id="playlistBackButton" type="button">再生リスト一覧</button>
         </div>
-        <div id="geo-am-tab1" class="geo-tab-content geo-active">
-          <div class="geo-point-box blue"><div class="geo-point-label">🔑 最重要ポイント</div>アメリカの農業は<strong>適地適作</strong>と<strong>企業的農業</strong>が特色。農業地域が気候・地形に合わせてはっきり分かれる。</div>
-          <table class="geo-table"><thead><tr><th>農業地帯</th><th>主要作物</th><th>場所</th></tr></thead><tbody>
-            <tr><td>春小麦地帯</td><td>小麦（春まき）</td><td>カナダ・北部大平原</td></tr>
-            <tr><td>冬小麦地帯</td><td>小麦（秋まき）</td><td>グレートプレーンズ南部</td></tr>
-            <tr><td>とうもろこし地帯</td><td>とうもろこし・大豆</td><td>コーンベルト（五大湖周辺）</td></tr>
-            <tr><td>綿花地帯</td><td>綿花</td><td>コットンベルト（南部）</td></tr>
-            <tr><td>酪農地帯</td><td>乳製品</td><td>五大湖周辺・北東部</td></tr>
-          </tbody></table>
-          <div class="geo-point-box"><div class="geo-point-label">🏭 シリコンバレー</div>カリフォルニア州サンフランシスコ南部。Google・Apple・Meta等のIT企業が集積。世界の技術革新をリード。</div>
-          <table class="geo-table" style="margin-top:14px"><thead><tr><th>項目</th><th>内容</th></tr></thead><tbody>
-            <tr><td>多文化社会</td><td>ヨーロッパ系・アフリカ系・ヒスパニック・アジア系など多様な民族が共存</td></tr>
-            <tr><td>NAFTA→USMCA</td><td>アメリカ・カナダ・メキシコの自由貿易協定。2020年に改定</td></tr>
-          </tbody></table>
+        <form class="playlist-create" id="playlistForm">
+          <input id="playlistNameInput" type="text" maxlength="80" placeholder="新しい再生リスト名" required>
+          <button type="submit">作成</button>
+        </form>
+        <div class="playlist-file-actions">
+          <button id="exportPlaylistsButton" type="button">再生リストをエクスポート</button>
+          <label for="importPlaylistsInput">再生リストをインポート<input id="importPlaylistsInput" type="file" accept="application/json,.json"></label>
         </div>
-        <div id="geo-am-tab2" class="geo-tab-content">
-          <div class="geo-point-box green"><div class="geo-point-label">🔑 最重要ポイント</div>ブラジルは<strong>バイオエタノール（さとうきび）</strong>生産・大豆輸出で急成長。アマゾンの開発と<strong>熱帯雨林破壊</strong>が深刻な問題。</div>
-          <table class="geo-table"><thead><tr><th>国・地域</th><th>特色</th></tr></thead><tbody>
-            <tr><td><strong>ブラジル</strong></td><td>大豆・コーヒーの輸出大国。多民族社会（ポルトガル系・アフリカ系・日系等）</td></tr>
-            <tr><td><strong>アルゼンチン</strong></td><td>パンパ（大草原）で牛の放牧・小麦栽培が盛ん</td></tr>
-            <tr><td><strong>アンデス山脈</strong></td><td>標高差を利用した農業（高地→ジャガイモ・アルパカ）。インカ文明の地</td></tr>
-          </tbody></table>
-          <div class="geo-map-note" style="margin-top:16px"><h3>🌳 アマゾンの熱帯雨林</h3><p>地球上の酸素の20%を生産する「地球の肺」。農地・牧場・道路開発で急速に減少。温暖化・生物多様性への影響が懸念される。</p></div>
-        </div>
-      </div>
-    </div>
+        <div class="playlist-grid" id="playlistGrid"></div>
+      </section>
 
-    <!-- 一問一答 -->
-    <div id="geo-page-quiz" class="geo-page">
-      <div class="geo-section-title">一問一答 <span class="geo-section-subtitle">カードをタップして答えを確認しよう</span></div>
-      <div class="geo-content-section">
-        <h2>🌏 アジア州</h2>
-        <div class="geo-flashcard-grid">
-          <div class="geo-flashcard" onclick="this.classList.toggle('geo-open')"><div class="geo-q">中国が沿岸部に設けた、外国企業向けの特別な地区は？</div><div class="geo-a">経済特区（シェンジェン・上海など）</div><span class="geo-tap-hint">タップで確認</span></div>
-          <div class="geo-flashcard" onclick="this.classList.toggle('geo-open')"><div class="geo-q">東南アジア10か国が加盟する地域連合の略称は？</div><div class="geo-a">ASEAN（東南アジア諸国連合）</div><span class="geo-tap-hint">タップで確認</span></div>
-          <div class="geo-flashcard" onclick="this.classList.toggle('geo-open')"><div class="geo-q">インドのIT産業の中心都市はどこ？</div><div class="geo-a">バンガロール</div><span class="geo-tap-hint">タップで確認</span></div>
-          <div class="geo-flashcard" onclick="this.classList.toggle('geo-open')"><div class="geo-q">夏に南東から吹く、アジアの気候を特色づける風は？</div><div class="geo-a">季節風（モンスーン）</div><span class="geo-tap-hint">タップで確認</span></div>
-        </div>
-      </div>
-      <div class="geo-content-section">
-        <h2>🇪🇺 ヨーロッパ州</h2>
-        <div class="geo-flashcard-grid">
-          <div class="geo-flashcard" onclick="this.classList.toggle('geo-open')"><div class="geo-q">EUの共通通貨の名前は？</div><div class="geo-a">ユーロ（€）</div><span class="geo-tap-hint">タップで確認</span></div>
-          <div class="geo-flashcard" onclick="this.classList.toggle('geo-open')"><div class="geo-q">イギリスがEUを離脱したことを何という？</div><div class="geo-a">Brexit（ブレグジット）。2020年に正式離脱。</div><span class="geo-tap-hint">タップで確認</span></div>
-          <div class="geo-flashcard" onclick="this.classList.toggle('geo-open')"><div class="geo-q">北西ヨーロッパを温暖にしている大西洋の暖流は？</div><div class="geo-a">北大西洋海流（偏西風の影響とセットで覚える）</div><span class="geo-tap-hint">タップで確認</span></div>
-          <div class="geo-flashcard" onclick="this.classList.toggle('geo-open')"><div class="geo-q">地中海沿岸で夏に栽培されるおもな作物2つは？</div><div class="geo-a">オリーブとぶどう（夏の乾燥に強い）</div><span class="geo-tap-hint">タップで確認</span></div>
-        </div>
-      </div>
-      <div class="geo-content-section">
-        <h2>🌍 アフリカ・南北アメリカ州</h2>
-        <div class="geo-flashcard-grid">
-          <div class="geo-flashcard" onclick="this.classList.toggle('geo-open')"><div class="geo-q">特定の農産物・鉱産物に依存した経済構造を何という？</div><div class="geo-a">モノカルチャー経済（価格変動の影響を受けやすい）</div><span class="geo-tap-hint">タップで確認</span></div>
-          <div class="geo-flashcard" onclick="this.classList.toggle('geo-open')"><div class="geo-q">アメリカで五大湖周辺に広がる農業地帯は？</div><div class="geo-a">コーンベルト（とうもろこし・大豆の産地）</div><span class="geo-tap-hint">タップで確認</span></div>
-          <div class="geo-flashcard" onclick="this.classList.toggle('geo-open')"><div class="geo-q">ブラジルが大量生産する再生可能エネルギー燃料は？</div><div class="geo-a">バイオエタノール（さとうきびから製造）</div><span class="geo-tap-hint">タップで確認</span></div>
-          <div class="geo-flashcard" onclick="this.classList.toggle('geo-open')"><div class="geo-q">アルゼンチンの大草原・農牧業地帯の名称は？</div><div class="geo-a">パンパ（牛の放牧・小麦栽培が盛ん）</div><span class="geo-tap-hint">タップで確認</span></div>
-        </div>
-      </div>
-    </div>
-
-  </div><!-- /geo-container -->
-  <footer id="geo-footer">
-    <p>📚 中2社会（地理）まとめノート｜定期テスト対策用</p>
-    <p style="margin-top:6px">カードをタップして答えを確認しよう。各単元のページでさらに詳しく学べます。</p>
-  </footer>
-</div><!-- /disguiseOverlay -->
-
-<!-- 偽装中ヒント -->
-<div id="disguiseHint">Shift+Esc で戻る</div>
-
-<!-- スクリーンセーバー -->
-<div id="screensaver">
-  <div id="ssClock">00:00</div>
-  <div id="ssDate"></div>
-  <div id="ssHint">クリックまたはキーを押して復帰</div>
-</div>
-
-<!-- ===== アップデート履歴オーバーレイ ===== -->
-<div id="historyOverlay">
-  <div id="historyOverlayInner">
-    <button id="historyCloseBtn">✕ 閉じる</button>
-    <div class="sidebar-hist">
-      <h2>目次</h2>
-      <a href="#hist-history">アップデート履歴</a>
-      <a href="#hist-bugs">既知のバグ</a>
-    </div>
-    <div class="hist-main-content">
-      <div class="hist-header-container">
-        <img src="https://aicreation-file.miricanvas.com/a00/production/private/txt2img/2026/05/23/14/cf83ba53-7234-47e7-9fc4-5e638a88062b.png" alt="Logo" class="hist-logo">
-        <h1 class="hist-title-text">Untraceable Browser</h1>
-      </div>
-      <h2 id="hist-history">アップデート情報</h2>
-      <div class="hist-update-section">
-        <p class="hist-version">Ver.1.2.8 2026/05/27</p>
-        <ul>
-          <li>ページ偽装機能を追加しました。該当ボタンで起動可。また、Shift+escキーで閉じる。</li>
-          <li>30秒操作していない状態でスクリーンセーバーを起動する機能を追加。</li>
-          <li>覗き見防止モードを追加しました。</li>
-          <li>緊急脱出を削除しました。</li>
-          <li>左上アイコンをタップでHOMEに戻れます。</li>
-          <li>メモ機能の追加</li>
-          <li>複数タブに対応しました。</li>
-          <li>背景、「サイバーグリーン」を追加しました。</li>
-          <li>RAM/FPSモニターを追加しました。</li>
-          <li>タブバーにファビコン対応にしました。</li>
-          <li>Ctrl+Tで新規タブ。iframeにフォーカスが当たっている場合は機能しません。</li>
-        </ul>
-      </div>
-      <div class="hist-update-section">
-        <p class="hist-version">Ver.1.2.0 2026/05/25</p>
-        <ul>
-          <li>画面右上にアイコン表示を追加しました。</li>
-          <li>アップデート履歴を"アップデート情報・バグ"に変更しました。</li>
-          <li>メニューボタンを追加しました。</li>
-          <li>メニューに軽量プロキシ、GUSTを追加しました。新規タブで開きます。</li>
-        </ul>
-      </div>
-      <div class="hist-update-section">
-        <p class="hist-version">Ver.1.1.5 2026/05/24</p>
-        <ul>
-          <li>サイドバーを追加しました。</li>
-          <li>サイドバーにお気に入り機能を追加しました（下部の＋ボタンでお気に入り登録可能）。</li>
-          <li>緊急脱出機能を追加。テキストボックス未選択時に「q」キーを押すとWikipediaへ移動し、他者に画面を見られるリスクを軽減します。</li>
-        </ul>
-      </div>
-      <div class="hist-update-section">
-        <p class="hist-version">Ver.1.1.4 2026/05/24</p>
-        <ul>
-          <li>サイドバーを追加しました。</li>
-          <li>サイドバーにお気に入り機能を追加しました（下部の＋ボタンでお気に入り登録可能）。</li>
-          <li>緊急脱出機能を追加。テキストボックス未選択時に「q」キーを押すとWikipediaへ移動し、他者に画面を見られるリスクを軽減します。</li>
-        </ul>
-      </div>
-      <div class="hist-update-section">
-        <p class="hist-version">Ver.1.1.3 2026/05/24</p>
-        <ul>
-          <li>背景選択メニューに「秋の富士山」と「ノイシュヴァンシュタイン城」を追加しました。</li>
-          <li>時刻表示機能を追加しました。</li>
-          <li>ブラウザアイコン（ファビコン）を専用デザインに変更しました。</li>
-          <li>UIフォントを「Ubuntu」に統一し、デザインの一貫性を強化しました。</li>
-          <li>アップデート履歴ボタン、ページを追加。</li>
-        </ul>
-      </div>
-      <div class="hist-update-section">
-        <p class="hist-version">Ver.1.1.2 2026/05/24</p>
-        <ul>
-          <li>背景選択メニューに「札幌 大通公園の夜景」、「日本アルプスの山々」を追加しました。</li>
-          <li>再読み込み機能を追加しました。</li>
-          <li>履歴を残さないセッションリセット機能の実装。</li>
-          <li>戻るボタンを削除しました。</li>
-        </ul>
-      </div>
-      <div class="hist-update-section">
-        <p class="hist-version">Ver.1.1.1 2026/05/23</p>
-        <ul>
-          <li>背景機能を追加しました。</li>
-          <li>戻るボタンを追加。</li>
-          <li>UIを調節しました。</li>
-        </ul>
-      </div>
-      <div class="hist-update-section">
-        <p class="hist-version">Ver.1.1.0 2026/05/22</p>
-        <ul>
-          <li>UI調整、ホームの追加をして正式版公開。</li>
-        </ul>
-      </div>
-      <div class="hist-update-section">
-        <p class="hist-version">Ver.1.0.0 β 2026/05/22</p>
-        <ul>
-          <li>iframeを活用した最低限のブラウジング機能を搭載したβ版公開。</li>
-        </ul>
-      </div>
-      <h2 id="hist-bugs" style="margin-top:40px;">既知のバグ・制限事項</h2>
-      <div class="hist-bug-section">
-        <ul>
-          <li><strong>X-Frame-Options制限:</strong> 一部のWebサイト（Google検索結果やSNS等）は、セキュリティ設定によりiframe内での表示がブロックされる可能性があります。</li>
-          <li><strong>偽装ページが表示されない可能性:</strong> フォーカスがiframeに移されている場合、偽装ページが機能しない可能性があります。</li>
-          <li><strong>フォーカス追従:</strong> iframe内から親ページへフォーカスを戻した際、一部の環境でスクロール位置がリセットされる場合があります。</li>
-        </ul>
-      </div>
-      <div class="hist-footer">
-        &copy; 2026 Untraceable Browser Project<br>
-        連絡先: off_mix@proton.me
-      </div>
-    </div>
+      <section class="page hidden" id="messagePage">
+        <div class="empty" id="messageContent"></div>
+      </section>
+    </main>
   </div>
-</div>
-
-<div id="privacyStatus">待機中</div>
-<div id="fpsDisplay">-- FPS</div>
-<div id="darkVeil"></div>
-<div id="favBar"></div>
-
-<!-- タブバー -->
-<div class="tabbar" id="tabbar">
-  <div id="addTabBtn" title="新しいタブ">＋</div>
-</div>
-
-<!-- 背景メニュー -->
-<div id="bgMenu">
-  <div class="bg-option" data-bg="https://custom-images.strikinglycdn.com/res/hrscywv4p/image/upload/c_limit,fl_lossy,h_9000,w_1200,f_auto,q_auto/8103728/282569_954041.jpeg">🌊 デフォルト</div>
-  <div class="bg-option" data-bg="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/Ginza_line_Shibuya_201309.jpg/1280px-Ginza_line_Shibuya_201309.jpg">🗼 渋谷</div>
-  <div class="bg-option" data-bg="https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Odori_Park_Sapporo_autumn.jpg/1280px-Odori_Park_Sapporo_autumn.jpg">🌃 札幌 大通公園の夜景</div>
-  <div class="bg-option" data-bg="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/Mount_Fuji_from_Hotel_Mt.Fuji_2011-10-27.jpg/1280px-Mount_Fuji_from_Hotel_Mt.Fuji_2011-10-27.jpg">🍂 秋の富士山</div>
-  <div class="bg-option" data-bg="https://upload.wikimedia.org/wikipedia/commons/thumb/f/f8/Neuschwanstein_Castle_from_Marienbrücke.jpg/1280px-Neuschwanstein_Castle_from_Marienbrücke.jpg">🏰 ノイシュヴァンシュタイン城</div>
-  <div class="bg-option" data-bg="https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/Karakoram_from_Gondogoro_La.jpg/1280px-Karakoram_from_Gondogoro_La.jpg">⛰ 日本アルプスの山々</div>
-  <div class="bg-option" data-bg="linear-gradient(135deg,#001a00,#003300,#00ff41,#001a00)" data-type="gradient">💚 サイバーグリーン</div>
-  <div class="bg-option" data-bg="https://o-i-shi.com/wp-content/uploads/2025/05/greenblack-18.jpg">サイバーグリーン</div>
-  <div class="bg-option" data-bg="">⬛ なし（黒）</div>
-</div>
-
-<!-- ツールポップアップ -->
-<div id="toolPopup">
-  <p style="font-size:15px;margin-bottom:10px;">🔧 メニュー</p>
-  <button id="gustBtn" onclick="window.open('https://gust.vercel.app','_blank')">🌪️ GUST</button>
-  <p style="font-size:11px;color:#888;margin-top:4px;">超軽量な強力プロキシ</p>
-  <hr>
-  <p style="font-size:15px;margin-bottom:10px;">⚙️ 設定</p>
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-    <span style="color:#aaa;font-size:12px;">🔐 ロック機能</span>
-    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
-      <span id="lockToggleLabel" style="font-size:11px;color:#888;">無効</span>
-      <div id="lockToggleWrap" onclick="toggleLockSetting()" style="width:36px;height:20px;border-radius:10px;background:#333;border:1px solid #555;position:relative;cursor:pointer;transition:background 0.2s;">
-        <div id="lockToggleThumb" style="position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#888;transition:all 0.2s;"></div>
+  <div class="toast" id="toast" role="status"></div>
+  <div class="settings-backdrop hidden" id="playlistPickerBackdrop" role="presentation">
+    <section class="settings-panel" role="dialog" aria-modal="true" aria-labelledby="playlistPickerTitle">
+      <div class="settings-header">
+        <h2 id="playlistPickerTitle">再生リストに追加</h2>
+        <button class="round-button" id="closePlaylistPickerButton" type="button" aria-label="閉じる"><svg class="icon"><use href="#i-x"></use></svg></button>
       </div>
-    </label>
+      <div class="playlist-picker-list" id="playlistPickerList"></div>
+      <form class="playlist-create" id="quickPlaylistForm">
+        <input id="quickPlaylistNameInput" type="text" maxlength="80" placeholder="新しい再生リスト名" required>
+        <button type="submit">作成して追加</button>
+      </form>
+    </section>
   </div>
-  <hr style="margin:4px 0 10px;">
-  <p style="margin-bottom:6px;color:#aaa;font-size:12px;">タブ名・ファビコン偽装</p>
-  <div style="display:flex;flex-direction:column;gap:6px;">
-    <input type="text" id="disguiseTitleInput" placeholder="タブ名（例：Google）" style="width:100%;height:28px;padding:0 8px;border-radius:5px;border:1px solid #555;background:#222;color:#fff;font-size:12px;outline:none;box-sizing:border-box;">
-    <input type="text" id="disguiseFaviconInput" placeholder="ファビコンURL（例：https://...）" style="width:100%;height:28px;padding:0 8px;border-radius:5px;border:1px solid #555;background:#222;color:#fff;font-size:12px;outline:none;box-sizing:border-box;">
-    <p style="color:#666;font-size:11px;margin:0;">テンプレート：</p>
-    <div style="display:flex;flex-wrap:wrap;gap:4px;">
-      <button onclick="applyDisguiseTemplate('Google','https://www.google.com/favicon.ico')" style="font-size:11px;padding:3px 8px;border-radius:4px;border:1px solid #555;background:#2a2a2a;color:#ccc;cursor:pointer;">Google</button>
-      <button onclick="applyDisguiseTemplate('YouTube','https://www.youtube.com/favicon.ico')" style="font-size:11px;padding:3px 8px;border-radius:4px;border:1px solid #555;background:#2a2a2a;color:#ccc;cursor:pointer;">YouTube</button>
-      <button onclick="applyDisguiseTemplate('Wikipedia','https://www.wikipedia.org/favicon.ico')" style="font-size:11px;padding:3px 8px;border-radius:4px;border:1px solid #555;background:#2a2a2a;color:#ccc;cursor:pointer;">Wikipedia</button>
-      <button onclick="applyDisguiseTemplate('Twitter','https://twitter.com/favicon.ico')" style="font-size:11px;padding:3px 8px;border-radius:4px;border:1px solid #555;background:#2a2a2a;color:#ccc;cursor:pointer;">Twitter</button>
-      <button onclick="applyDisguiseTemplate('Amazon','https://www.amazon.co.jp/favicon.ico')" style="font-size:11px;padding:3px 8px;border-radius:4px;border:1px solid #555;background:#2a2a2a;color:#ccc;cursor:pointer;">Amazon</button>
-      <button onclick="applyDisguiseTemplate('Microsoft','https://www.microsoft.com/favicon.ico')" style="font-size:11px;padding:3px 8px;border-radius:4px;border:1px solid #555;background:#2a2a2a;color:#ccc;cursor:pointer;">Microsoft</button>
-    </div>
-    <button onclick="applyDisguise()" style="height:28px;border-radius:5px;border:none;background:#444;color:#fff;cursor:pointer;font-size:12px;font-family:Ubuntu,sans-serif;">適用</button>
+  <div class="settings-backdrop hidden" id="settingsBackdrop" role="presentation">
+    <section class="settings-panel" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <div class="settings-header">
+        <h2 id="settingsTitle">設定</h2>
+        <button class="round-button" id="closeSettingsButton" type="button" aria-label="設定を閉じる">
+          <svg class="icon"><use href="#i-x"></use></svg>
+        </button>
+      </div>
+      <div class="settings-group">
+        <div class="settings-row">
+          <div>
+            <span class="settings-label">ダークモード</span>
+            <p class="settings-help">画面の配色を暗くします。</p>
+          </div>
+          <label class="switch" aria-label="ダークモード">
+            <input id="darkModeToggle" type="checkbox">
+            <span class="switch-track"></span>
+          </label>
+        </div>
+      </div>
+      <div class="settings-group">
+        <div class="settings-row">
+          <div>
+            <span class="settings-label">おすすめ＋</span>
+            <p class="settings-help">視聴・検索履歴に近い未視聴動画を、複数のチャンネルからおすすめします。</p>
+          </div>
+          <label class="switch" aria-label="おすすめ＋">
+            <input id="personalizedRecommendationsToggle" type="checkbox">
+            <span class="switch-track"></span>
+          </label>
+        </div>
+      </div>
+      <div class="settings-group">
+        <label class="settings-label" for="tabPreset">ブラウザタブのプリセット</label>
+        <p class="settings-help">タイトルとファビコンをタブに反映します。</p>
+        <select class="settings-select" id="tabPreset">
+          <option value="classroom">ホーム - Classroom</option>
+          <option value="search">社会 中部地方 - Google検索</option>
+          <option value="custom">カスタム</option>
+        </select>
+      </div>
+      <div class="settings-group">
+        <label class="settings-label" for="customTabTitle">カスタムタブ名</label>
+        <input class="settings-input" id="customTabTitle" type="text" maxlength="120" placeholder="タブに表示する名前">
+        <input class="settings-input" id="customFaviconUrl" type="url" placeholder="ファビコン画像のURL">
+        <p class="settings-help">カスタムを選択すると、この2つの値が使われます。</p>
+      </div>
+          <p>By off_mix</p>
+      <div class="settings-actions">
+        <button class="settings-button" id="resetSettingsButton" type="button">標準に戻す</button>
+        <button class="settings-button primary" id="saveSettingsButton" type="button">保存</button>
+      </div>
+    </section>
   </div>
-  <hr style="margin:10px 0;">
-  <button id="fullscreenBtn" style="width:100%;height:32px;border-radius:5px;border:1px solid #555;background:transparent;color:#ccc;cursor:pointer;font-size:12px;font-family:Ubuntu,sans-serif;">⛶ フルスクリーン</button>
-</div>
 
-<!-- ナビバー -->
-<div class="navbar">
-  <img id="logoImg" src="https://cdn.phototourl.com/free/2026-05-27-4d659095-dd46-430b-af9f-a5d9e74d9b22.png" alt="Logo" title="ホームに戻る">
-  <div id="clock"></div>
-  <button class="nbtn" id="refreshButton" style="font-size:20px;width:48px;">↻</button>
-  <input type="text" id="urlInput" placeholder="URLまたは検索語句を入力してください...">
-  <button class="nbtn" id="goButton" style="font-size:15px;padding:0 20px;">GO</button>
-  <button class="nbtn icon-btn" id="bgButton" title="背景変更"><img src="https://cdn.phototourl.com/free/2026-06-01-110335f7-0313-48c0-acf1-b105d08e9b87.png" class="nav-icon"></button>
-  <button class="nbtn icon-btn" id="historyButton" title="更新情報"><img src="https://cdn.phototourl.com/free/2026-06-01-60ab0fca-bff4-4c59-b3af-7661b1a40a1c.png" class="nav-icon"></button>
-  <button class="nbtn icon-btn" id="resetButton" title="終了"><img src="https://cdn.phototourl.com/free/2026-06-01-128fbbac-d760-4868-b79e-53dabf56bfcc.png" class="nav-icon"></button>
-  <button id="panicBtn" class="icon-btn" title="偽装"><img src="https://cdn.phototourl.com/free/2026-06-01-1220b0e3-5a62-422e-be44-fa53dd0851ec.png" class="nav-icon"></button>
-  <button id="filterBtn" class="icon-btn" title="覗き見防止"><img src="https://cdn.phototourl.com/free/2026-06-01-c71de68e-f4ac-4c8f-88d5-96528d3b3437.png" class="nav-icon"></button>
-  <button class="nbtn" id="memoToggleBtn" style="font-size:14px;padding:0 16px;">メモ</button>
-  <button class="nbtn" id="menuButton" style="font-size:22px;width:48px;">≡</button>
-</div>
+  <script>
+    "use strict";
 
-<div id="mainContent">
-  <div id="loadingOverlay">
-    <div class="load-spinner"></div>
-    <div class="load-label">読み込み中...</div>
-  </div>
-  <div id="messageArea">
-    <p style="font-size:42px;">Untraceable Browser</p>
-    <p style="font-size:120%;margin-top:10px;">URLを入力して GO または Enter</p>
-    <p style="margin-top:8px;opacity:0.6;font-size:13px;">iframeベース・ブラウザ履歴なし</p>
-    <br><p style="font-size:11px;opacity:0.4;">Ver.1.2.8</p>
-  </div>
-</div>
+    /*
+     * インスタンスは画面に公開せず、リクエストごとに自動で健全性を判定します。
+     * f5.si と ducks.party を先頭に含め、応答したインスタンスを次回優先します。
+     */
+    const INSTANCES = [
+      "https://invidious.ritoge.com",
+      "https://invidious.f5.si",
+      "https://invidious.ducks.party",
+      "https://yt.omada.cafe",
+      "https://invidious.nerdvpn.de",
+      "https://inv.nadeko.net",
+      "https://invidious.privacydev.net",
+      "https://yt.chocolatemoo53.com",
+      "https://invidious.tiekoetter.com",
+      "https://iv.ggtyler.dev",
+      "https://invidious.perennialte.ch",
+      "https://invidious.jing.rocks",
+      "https://yewtu.be",
+      "https://invidious.private.coffee",
+      "https://iv.melmac.space",
+　　  "https://yt.artemislena.eu",
+　　　"https://y.com.sb"
+    ];
+    const HEALTH_KEY = "mikan-tube-instance-health";
+    const HISTORY_KEY = "mikan-tube-history";
+    const SEARCH_HISTORY_KEY = "mikan-tube-search-history";
+    const SUBSCRIPTIONS_KEY = "mikan-tube-subscriptions";
+    const PLAYLISTS_KEY = "mikan-tube-playlists";
+    const SETTINGS_KEY = "mikan-tube-settings";
+    const TAB_PRESETS = {
+      classroom: {
+        title: "ホーム - Classroom",
+        favicon: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTPMiIU5F8QnFLsyFCsrCeJNUtk53s79A-6xHHBAcTF9g&s=10"
+      },
+      search: {
+        title: "社会 中部地方 - Google検索",
+        favicon: "https://asset.watch.impress.co.jp/img/ktw/docs/2013/737/cont2_l.jpg"
+      }
+    };
+    const state = {
+      route: "home",
+      lastPath: "trending?region=JP",
+      lastItems: [],
+      homeItems: [],
+      homePool: [],
+      homePage: 1,
+      homeLoading: false,
+      subscriptions: [],
+      playlists: [],
+      activePlaylistId: null,
+      channelId: "",
+      channelUrl: "",
+      channelAuthor: "",
+      channelData: null,
+      channelContinuation: "",
+      channelTab: "home",
+      channelFilter: "",
+      channelSort: "latest",
+      currentVideo: null,
+      currentStreams: [],
+      currentStream: null,
+      currentAudioStream: null,
+      downloadStream: null,
+      nextItems: [],
+      watchPlaylistId: null,
+      abortController: null,
+      playbackGeneration: 0
+    };
 
-<!-- メモパネル -->
-<div id="memoPanel">
-  <div id="memoHeader">
-    <div id="memoHeaderLeft"><span id="memoTitle">📝 メモ</span><span id="memoSaveStatus">未保存</span></div>
-    <button id="memoCloseBtn">×</button>
-  </div>
-  <div id="memoToolbar">
-    <label>色：</label>
-    <div class="color-swatch" style="background:#ffffff" data-color="#ffffff"></div>
-    <div class="color-swatch" style="background:#ffeb3b" data-color="#ffeb3b"></div>
-    <div class="color-swatch" style="background:#ff7043" data-color="#ff7043"></div>
-    <div class="color-swatch" style="background:#ef5350" data-color="#ef5350"></div>
-    <div class="color-swatch" style="background:#66bb6a" data-color="#66bb6a"></div>
-    <div class="color-swatch" style="background:#42a5f5" data-color="#42a5f5"></div>
-    <div class="color-swatch" style="background:#ce93d8" data-color="#ce93d8"></div>
-    <input type="color" id="colorPicker" value="#ffffff">
-    <label style="margin-left:4px;">サイズ：</label>
-    <select id="fontSizeSelect">
-      <option value="11px">11</option><option value="12px">12</option><option value="13px">13</option>
-      <option value="14px" selected>14</option><option value="16px">16</option><option value="18px">18</option>
-      <option value="20px">20</option><option value="24px">24</option><option value="28px">28</option><option value="32px">32</option>
-    </select>
-  </div>
-  <div id="memoBody" contenteditable="true" spellcheck="false"></div>
-  <div id="memoFooter">
-    <button id="memoClearBtn">クリア</button>
-    <span id="memoCharCount">0 文字</span>
-    <button id="memoSaveBtn">💾 保存</button>
-  </div>
-</div>
+    const $ = (selector) => document.querySelector(selector);
+    const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    }[char]));
+    const icon = (name, className = "icon") => `<svg class="${className}" aria-hidden="true"><use href="#i-${name}"></use></svg>`;
 
-<script src="code.js"></script>
+    function getHealthOrder() {
+      try {
+        const health = JSON.parse(localStorage.getItem(HEALTH_KEY) || "{}");
+        return [...INSTANCES].sort((a, b) => (health[b] || 0) - (health[a] || 0));
+      } catch (_) {
+        return [...INSTANCES];
+      }
+    }
+
+    function rememberInstance(instance) {
+      try {
+        const health = JSON.parse(localStorage.getItem(HEALTH_KEY) || "{}");
+        health[instance] = Math.min((health[instance] || 0) + 1, 8);
+        for (const key of Object.keys(health)) {
+          if (key !== instance) health[key] = Math.max((health[key] || 0) - 1, 0);
+        }
+        localStorage.setItem(HEALTH_KEY, JSON.stringify(health));
+      } catch (_) {}
+    }
+
+    function markInstanceFailed(instance) {
+      try {
+        const health = JSON.parse(localStorage.getItem(HEALTH_KEY) || "{}");
+        health[instance] = Math.max((health[instance] || 0) - 3, -8);
+        localStorage.setItem(HEALTH_KEY, JSON.stringify(health));
+      } catch (_) {}
+    }
+
+    function setStatus(kind, text) {
+      const status = $("#status");
+      if (!status) return;
+      status.className = `status ${kind || ""}`.trim();
+      const statusText = $("#statusText");
+      if (statusText) statusText.textContent = text;
+    }
+
+    function readSettings() {
+      try {
+        return { theme: "light", tabPreset: "classroom", customTitle: "", customFavicon: "", personalizedRecommendations: false, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}") };
+      } catch (_) {
+        return { theme: "light", tabPreset: "classroom", customTitle: "", customFavicon: "", personalizedRecommendations: false };
+      }
+    }
+
+    function applyTabSettings(settings) {
+      const preset = TAB_PRESETS[settings.tabPreset];
+      const title = settings.tabPreset === "custom" ? (settings.customTitle.trim() || TAB_PRESETS.classroom.title) : preset.title;
+      const favicon = settings.tabPreset === "custom" ? (settings.customFavicon.trim() || TAB_PRESETS.classroom.favicon) : preset.favicon;
+      document.title = title;
+      $("#tabIcon").href = favicon;
+    }
+
+    function applySettings(settings = readSettings()) {
+      document.documentElement.dataset.theme = settings.theme === "dark" ? "dark" : "light";
+      $("#darkModeToggle").checked = settings.theme === "dark";
+      $("#tabPreset").value = settings.tabPreset;
+      $("#customTabTitle").value = settings.customTitle || "";
+      $("#customFaviconUrl").value = settings.customFavicon || "";
+      $("#personalizedRecommendationsToggle").checked = settings.personalizedRecommendations === true;
+      applyTabSettings(settings);
+      document.querySelector('meta[name="theme-color"]').setAttribute("content", settings.theme === "dark" ? "#0f0f0f" : "#ffffff");
+    }
+
+    function saveSettings() {
+      const settings = {
+        theme: $("#darkModeToggle").checked ? "dark" : "light",
+        tabPreset: $("#tabPreset").value,
+        customTitle: $("#customTabTitle").value,
+        customFavicon: $("#customFaviconUrl").value,
+        personalizedRecommendations: $("#personalizedRecommendationsToggle").checked
+      };
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+      applySettings(settings);
+      $("#settingsBackdrop").classList.add("hidden");
+      showToast("設定を保存しました");
+    }
+
+    function isLive(item) {
+      const title = String(item.title || "");
+      const type = String(item.type || "").toLowerCase();
+      const duration = Number(item.lengthSeconds ?? item.length ?? 0);
+      const liveTitle = /ライブ|生配信|配信中|\blive\b|\blivestream\b/i.test(title);
+      const isVideoType = !type || type === "video";
+      return !isVideoType
+        || item.liveNow === true || item.isLive === true || item.live === true
+        || String(item.liveNow).toLowerCase() === "true"
+        || type === "live" || liveTitle
+        || duration === 0;
+    }
+
+    function withoutLive(items) {
+      return (Array.isArray(items) ? items : []).filter((item) => !isLive(item));
+    }
+
+    function requestInstance(instance, path, parentSignal) {
+      const controller = new AbortController();
+      const task = { instance, cancelled: false, cancel: () => {} };
+      let timedOut = false;
+      const onAbort = () => controller.abort();
+      const timeout = setTimeout(() => {
+        timedOut = true;
+        controller.abort();
+      }, 4500);
+      parentSignal.addEventListener("abort", onAbort, { once: true });
+      task.cancel = () => {
+        task.cancelled = true;
+        controller.abort();
+      };
+      task.promise = fetch(`${instance}/api/v1/${path}`, {
+        signal: controller.signal,
+        headers: { "Accept": "application/json" }
+      }).then(async (response) => {
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        if (data?.error) throw new Error(String(data.error));
+        return { instance, data };
+      }).catch((error) => {
+        if (timedOut && !parentSignal.aborted) throw new Error("タイムアウト");
+        throw error;
+      }).finally(() => {
+        clearTimeout(timeout);
+        parentSignal.removeEventListener("abort", onAbort);
+      });
+      task.promise.catch((error) => {
+        if (!parentSignal.aborted && !task.cancelled && error.name !== "AbortError") markInstanceFailed(instance);
+      });
+      return task;
+    }
+
+    async function api(path) {
+      if (state.abortController) state.abortController.abort();
+      state.abortController = new AbortController();
+      const errors = [];
+      const instances = getHealthOrder();
+      setStatus("busy", "接続中");
+      for (let offset = 0; offset < instances.length; offset += 4) {
+        const tasks = instances.slice(offset, offset + 4)
+          .map((instance) => requestInstance(instance, path, state.abortController.signal));
+        try {
+          const result = await Promise.any(tasks.map((task) => task.promise));
+          tasks.forEach((task) => {
+            if (task.instance !== result.instance) task.cancel();
+          });
+          rememberInstance(result.instance);
+          setStatus("", "自動接続");
+          return result.data;
+        } catch (error) {
+          if (state.abortController.signal.aborted) {
+            const aborted = new Error("操作を中断しました");
+            aborted.name = "AbortError";
+            throw aborted;
+          }
+          const reasons = error.errors || [error];
+          errors.push(...reasons.map((reason) => reason.message).filter(Boolean));
+        }
+      }
+      setStatus("error", "接続できません");
+      throw new Error(errors.slice(0, 4).join(" / ") || "接続先が見つかりません");
+    }
+
+    function formatCount(value) {
+      const count = Number(value || 0);
+      if (count >= 100000000) return `${(count / 100000000).toFixed(1)}億`;
+      if (count >= 10000) return `${(count / 10000).toFixed(1)}万`;
+      if (count >= 1000) return `${(count / 1000).toFixed(1)}千`;
+      return count.toLocaleString("ja-JP");
+    }
+
+    function formatDuration(seconds) {
+      const total = Number(seconds || 0);
+      if (!total) return "";
+      const h = Math.floor(total / 3600);
+      const m = Math.floor((total % 3600) / 60).toString().padStart(2, "0");
+      const s = Math.floor(total % 60).toString().padStart(2, "0");
+      return h ? `${h}:${m}:${s}` : `${Number(m)}:${s}`;
+    }
+
+    function initials(value) {
+      const text = String(value || "?").trim();
+      return escapeHtml(text.slice(0, 1).toUpperCase());
+    }
+
+    function readSubscriptions() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(SUBSCRIPTIONS_KEY) || "[]");
+        return Array.isArray(saved) ? saved : [];
+      } catch (_) {
+        return [];
+      }
+    }
+
+    function writeSubscriptions() {
+      try { localStorage.setItem(SUBSCRIPTIONS_KEY, JSON.stringify(state.subscriptions)); } catch (_) {}
+    }
+
+    function subscriptionKey(channel) {
+      return String(channel?.authorId || channel?.author || "").trim().toLowerCase();
+    }
+
+    function channelThumbnail(item) {
+      const thumbnails = Array.isArray(item.authorThumbnails)
+        ? item.authorThumbnails
+        : [];
+      return thumbnails.find((image) => /maxres|medium|default/i.test(String(image.quality || "")))?.url
+        || thumbnails[thumbnails.length - 1]?.url
+        || "";
+    }
+
+    function avatarHtml(rawItem) {
+      const item = normalizeItem(rawItem);
+      const fallback = `<span class="avatar-fallback">${initials(item.author)}</span>`;
+      const src = channelThumbnail(item);
+      if (!src) return fallback;
+      return `<img src="${escapeHtml(src)}" loading="lazy" alt="${escapeHtml(item.author)}のアイコン">`;
+    }
+
+    function normalizeItem(item) {
+      return {
+        videoId: item.videoId || item.id || "",
+        title: item.title || "タイトルなし",
+        author: localizeChannelName(item.author || item.authorId || "チャンネル不明"),
+        authorId: item.authorId || "",
+        authorUrl: item.authorUrl || "",
+        authorThumbnails: item.authorThumbnails || item.authorThumbnail || item.channelThumbnails || [],
+        type: item.type || "",
+        viewCount: item.viewCount || item.views || 0,
+        publishedText: item.publishedText || "",
+        published: item.published ?? item.publishedTimestamp ?? item.publishedAt ?? item.uploadDate ?? item.publishedDate ?? null,
+        lengthSeconds: item.lengthSeconds || item.length || 0,
+        videoThumbnails: item.videoThumbnails || [],
+        description: item.description || item.descriptionText || item.descriptionHtml || ""
+      };
+    }
+
+    function publishedAtMs(item) {
+      const raw = item?.published ?? item?.publishedTimestamp ?? item?.publishedAt
+        ?? item?.uploadDate ?? item?.publishedDate ?? null;
+      if (raw === null || raw === undefined || raw === "") return NaN;
+      const numeric = Number(raw);
+      if (Number.isFinite(numeric)) return numeric < 100000000000 ? numeric * 1000 : numeric;
+      return Date.parse(String(raw));
+    }
+
+    function isRecentNewsItem(item) {
+      const now = Date.now();
+      const publishedAt = publishedAtMs(item);
+      const thirtyDays = 30 * 24 * 60 * 60 * 1000;
+      return Number.isFinite(publishedAt) && publishedAt <= now && now - publishedAt <= thirtyDays;
+    }
+
+    function thumbnail(item) {
+      const direct = item.videoThumbnails?.find((image) => image.quality === "medium")?.url
+        || item.videoThumbnails?.[0]?.url;
+      return direct || `https://i.ytimg.com/vi/${encodeURIComponent(item.videoId)}/mqdefault.jpg`;
+    }
+
+    function renderSkeleton(count = 8) {
+      $("#videoGrid").innerHTML = Array.from({ length: count }, () => `
+        <div class="video-card skeleton">
+          <div class="thumb"></div>
+          <div class="card-body">
+            <div class="avatar"></div>
+            <div><div class="line"></div><div class="line compact"></div></div>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function cardHtml(rawItem, compact = false) {
+      const item = normalizeItem(rawItem);
+      if (!item.videoId) return "";
+      return `
+        <article class="video-card" data-video-id="${escapeHtml(item.videoId)}" tabindex="0" role="button" aria-label="${escapeHtml(item.title)}">
+          <div class="thumb">
+            <img src="${escapeHtml(thumbnail(item))}" loading="lazy" alt="" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 160 90%22%3E%3Crect width=%22160%22 height=%2290%22 fill=%22%23d4d4d4%22/%3E%3C/svg%3E'">
+            ${item.lengthSeconds ? `<span class="duration">${formatDuration(item.lengthSeconds)}</span>` : ""}
+          </div>
+          <div class="card-body">
+            <div class="channel-avatar channel-link" data-channel-id="${escapeHtml(item.authorId)}" data-channel-url="${escapeHtml(item.authorUrl)}" data-channel-author="${escapeHtml(item.author)}" role="button" tabindex="0" aria-label="${escapeHtml(item.author)}のチャンネルを開く">${avatarHtml(item)}</div>
+            <div>
+              <h3 class="card-title">${escapeHtml(item.title)}</h3>
+              <div class="card-meta">
+                <span>${escapeHtml(item.author)}</span>
+                ${item.viewCount ? `<span>${formatCount(item.viewCount)} 回視聴</span>` : ""}
+                ${item.publishedText ? `<span>${escapeHtml(item.publishedText)}</span>` : ""}
+              </div>
+            </div>
+          </div>
+        </article>
+      `;
+    }
+
+    function historyCardHtml(item) {
+      const normalized = normalizeItem(item);
+      return `
+        <div class="history-row">
+          ${cardHtml(normalized)}
+          <button class="history-remove-button" type="button" data-remove-history="${escapeHtml(normalized.videoId)}">履歴から削除</button>
+        </div>`;
+    }
+
+    function bindCards(root = document) {
+      root.querySelectorAll(".channel-link[data-channel-author]").forEach((channel) => {
+        const openChannelHome = (event) => {
+          event.stopPropagation();
+          openChannel(channel.dataset.channelId, channel.dataset.channelUrl, channel.dataset.channelAuthor);
+        };
+        channel.addEventListener("click", openChannelHome);
+        channel.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            openChannelHome(event);
+          }
+        });
+      });
+      root.querySelectorAll(".video-card[data-video-id]").forEach((card) => {
+        const open = () => openVideo(card.dataset.videoId, card.closest("[data-playlist-id]")?.dataset.playlistId || "");
+        card.addEventListener("click", open);
+        card.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") { event.preventDefault(); open(); }
+        });
+      });
+    }
+
+    function showEmpty(title, message, retry = true) {
+      $("#videoGrid").innerHTML = `
+        <div class="empty" style="grid-column:1/-1">
+          ${icon("alert", "icon large")}
+          <div><h2>${escapeHtml(title)}</h2><p>${escapeHtml(message)}</p>
+          ${retry ? `<button class="retry-button" id="retryButton" type="button">再試行</button>` : ""}</div>
+        </div>`;
+      $("#retryButton")?.addEventListener("click", () => loadHome(state.lastPath, $("#pageHeading").textContent));
+    }
+
+    function withPage(path, page) {
+      const [pathname, query = ""] = path.split("?");
+      const params = new URLSearchParams(query);
+      params.set("page", String(page));
+      return `${pathname}?${params.toString()}`;
+    }
+
+    function addHomeToPool(items) {
+      const blocked = new Set([
+        ...state.homeItems.map((item) => item.videoId || item.id),
+        ...state.homePool.map((item) => item.videoId || item.id)
+      ]);
+      state.homePool.push(...uniqueVideoItems(items, blocked));
+    }
+
+    function renderHomeItems() {
+      $("#videoGrid").className = "video-grid";
+      const items = state.route === "channel" ? channelItemsForView() : state.homeItems;
+      $("#videoGrid").innerHTML = items.length
+        ? items.map((item) => cardHtml(item)).join("")
+        : `<div class="empty" style="grid-column:1/-1">${icon("alert", "icon large")}<div><h2>動画が見つかりません</h2><p>${state.channelFilter ? "検索条件を変えてお試しください。" : "別の検索語をお試しください。"}</p></div></div>`;
+      bindCards($("#videoGrid"));
+      if (state.route === "channel") renderChannelDashboard();
+      const hasMore = state.route !== "channel" || Boolean(state.channelContinuation) || state.homePool.length > 0;
+      $("#loadMoreWrap").classList.toggle("hidden", !hasMore);
+      $("#loadMoreButton").disabled = false;
+      $("#loadMoreButton").textContent = "さらに読み込む";
+      const canLoadAll = state.route === "channel"
+        && state.channelTab !== "playlists"
+        && (Boolean(state.channelContinuation) || state.homePool.length > 0);
+      $("#loadAllButton").classList.toggle("hidden", !canLoadAll);
+      $("#loadAllButton").disabled = false;
+      $("#loadAllButton").textContent = "チャンネル動画をすべて読み込む";
+    }
+
+    async function fetchMoreHomePage() {
+      if (state.route === "channel") {
+        if (!state.channelId || !state.channelContinuation) return false;
+        const path = channelTabPath(state.channelId, state.channelTab, state.channelContinuation);
+        const data = await api(path);
+        const items = Array.isArray(data) ? data : (data.videos || data.latestVideos || data.items || []);
+        const before = state.homePool.length;
+        addHomeToPool(channelItemsForTab(items, state.channelTab));
+        state.channelContinuation = data.continuation || "";
+        return state.homePool.length > before;
+      }
+      const page = state.homePage + 1;
+      let data = await api(withPage(state.lastPath, page));
+      let items = Array.isArray(data) ? data : (data.videos || data.items || []);
+      const before = state.homePool.length;
+      addHomeToPool(state.route === "news"
+        ? uniqueVideoItems(items.filter(isRecentNewsItem))
+        : withoutLive(items));
+      if (state.homePool.length === before && state.lastPath.startsWith("trending")) {
+        data = await api(`search?q=${encodeURIComponent("おすすめ")}&type=video&page=${page}`);
+        items = Array.isArray(data) ? data : (data.videos || data.items || []);
+        addHomeToPool(withoutLive(items));
+      }
+      state.homePage = page;
+      return state.homePool.length > before;
+    }
+
+    async function loadMoreHome() {
+      if (!["home", "news", "channel"].includes(state.route) || state.homeLoading) return;
+      state.homeLoading = true;
+      $("#loadMoreButton").disabled = true;
+      $("#loadMoreButton").textContent = "読み込み中…";
+      try {
+        if (state.homePool.length < 20) await fetchMoreHomePage();
+        const batch = state.homePool.splice(0, 20);
+        if (!batch.length) {
+          $("#loadMoreWrap").classList.add("hidden");
+          return;
+        }
+        state.homeItems.push(...batch);
+        renderHomeItems();
+      } catch (_) {
+        showToast("追加の動画を取得できませんでした");
+        $("#loadMoreButton").disabled = false;
+        $("#loadMoreButton").textContent = "再試行";
+      } finally {
+        state.homeLoading = false;
+      }
+    }
+
+    async function loadAllChannelVideos() {
+      if (state.route !== "channel" || state.channelTab === "playlists" || state.homeLoading) return;
+      state.homeLoading = true;
+      $("#loadMoreButton").disabled = true;
+      $("#loadAllButton").disabled = true;
+      $("#loadAllButton").textContent = "すべて読み込み中…";
+      const seenContinuations = new Set();
+      let pages = 0;
+      try {
+        while (state.channelContinuation && !seenContinuations.has(state.channelContinuation)) {
+          seenContinuations.add(state.channelContinuation);
+          await fetchMoreHomePage();
+          pages += 1;
+          if (pages % 5 === 0) {
+            $("#loadAllButton").textContent = `${pages}ページ読み込み中…`;
+          }
+        }
+        if (state.homePool.length) {
+          state.homeItems.push(...state.homePool.splice(0));
+        }
+        renderHomeItems();
+        showToast(`チャンネル動画を${state.homeItems.length.toLocaleString("ja-JP")}本読み込みました`);
+      } catch (error) {
+        if (error.name !== "AbortError") showToast("チャンネル動画の全件取得に失敗しました");
+      } finally {
+        state.homeLoading = false;
+        $("#loadMoreButton").disabled = false;
+        $("#loadAllButton").disabled = false;
+      }
+    }
+
+    function channelItemsForView() {
+      let items = [...state.homeItems];
+      const filter = state.channelFilter.trim().toLowerCase();
+      if (filter) {
+        items = items.filter((item) => {
+          const normalized = normalizeItem(item);
+          return [normalized.title, normalized.author, normalized.description]
+            .some((value) => String(value || "").toLowerCase().includes(filter));
+        });
+      }
+      if (state.channelSort === "popular") {
+        items.sort((a, b) => Number(b.viewCount || b.views || 0) - Number(a.viewCount || a.views || 0));
+      }
+      return items;
+    }
+
+    function renderChannelDashboard(data = state.channelData || {}) {
+      const dashboard = $("#channelDashboard");
+      if (!dashboard || state.route !== "channel" || state.channelTab === "playlists") return;
+      const subscribers = data.subCount ?? data.subscriberCount ?? data.subscribers;
+      const videos = data.videoCount ?? data.videosCount;
+      const loaded = state.homeItems.length + state.homePool.length;
+      const latest = normalizeItem(state.homeItems[0] || {});
+      $("#channelStatGrid").innerHTML = `
+        <div class="channel-stat">
+          <span class="channel-stat-label">チャンネル登録者</span>
+          <strong class="channel-stat-value">${subscribers ? `${escapeHtml(formatCount(subscribers))} 人` : "情報なし"}</strong>
+        </div>
+        <div class="channel-stat">
+          <span class="channel-stat-label">公開動画</span>
+          <strong class="channel-stat-value">${videos ? `${escapeHtml(formatCount(videos))} 本` : `${loaded.toLocaleString("ja-JP")} 本を表示中`}</strong>
+        </div>
+        <div class="channel-stat">
+          <span class="channel-stat-label">最新の動画</span>
+          <strong class="channel-stat-value">${latest.videoId ? escapeHtml(latest.title) : "動画を読み込み中"}</strong>
+        </div>`;
+      $("#channelFilterInput").value = state.channelFilter;
+      $("#channelSortSelect").value = state.channelSort;
+      dashboard.classList.remove("hidden");
+    }
+
+    async function loadHome(path = "trending?region=JP", heading = "おすすめの動画", hash = null, newsMode = false) {
+      stopPlayback();
+      state.route = newsMode ? "news" : "home";
+      $("#clearHistoryButton").classList.add("hidden");
+      state.watchPlaylistId = null;
+      state.channelData = null;
+      $("#channelHeader").classList.add("hidden");
+      $("#channelDashboard").classList.add("hidden");
+      $("#chips").classList.remove("hidden");
+      state.lastPath = path;
+      state.homePage = 1;
+      state.homeItems = [];
+      state.homePool = [];
+      state.homeLoading = false;
+      $("#homePage").classList.remove("hidden");
+      $("#watchPage").classList.add("hidden");
+      $("#playlistPage").classList.add("hidden");
+      $("#messagePage").classList.add("hidden");
+      $("#pageHeading").textContent = heading;
+      $("#pageSubheading").textContent = "";
+      $("#videoGrid").className = "video-grid";
+      renderSkeleton(20);
+      try {
+        const data = await api(path);
+        let items = Array.isArray(data) ? data : (data.videos || data.items || []);
+        let loadedPage = 1;
+        if (newsMode) {
+          let recentItems = uniqueVideoItems(items.filter(isRecentNewsItem));
+          for (let page = 2; page <= 4 && recentItems.length < 20; page += 1) {
+            try {
+              const nextData = await api(withPage(path, page));
+              const nextItems = Array.isArray(nextData) ? nextData : (nextData.videos || nextData.items || []);
+              recentItems = uniqueVideoItems([...recentItems, ...nextItems.filter(isRecentNewsItem)]);
+              loadedPage = page;
+            } catch (error) {
+              if (error.name === "AbortError") throw error;
+              break;
+            }
+          }
+          state.lastItems = recentItems;
+          state.homePage = loadedPage;
+          $("#pageSubheading").textContent = "投稿日時が直近30日以内の動画のみ表示";
+        } else {
+          state.lastItems = uniqueVideoItems(items);
+        }
+        if (!newsMode && !state.lastItems.length && path.startsWith("trending")) {
+          try {
+            const fallback = await api("search?q=%E9%9F%B3%E6%A5%BD&type=video&region=JP");
+            const fallbackItems = Array.isArray(fallback) ? fallback : (fallback.videos || fallback.items || []);
+            state.lastItems = uniqueVideoItems(fallbackItems);
+          } catch (_) {}
+        }
+        const settings = readSettings();
+        if (path.startsWith("trending")) {
+          state.lastItems = await addNamedRecommendations(state.lastItems);
+          if (settings.personalizedRecommendations && (readHistory().length || readSearchHistory().length)) {
+            const recommendations = await personalizedItems(state.lastItems);
+            const queries = personalizedItems.lastQueries || [];
+            if (recommendations.length) {
+              state.lastItems = recommendations;
+              $("#pageHeading").textContent = "おすすめ＋";
+              $("#pageSubheading").textContent = queries.length
+                ? `履歴に関連する未視聴動画を${queries.length}種類の検索語から表示`
+                : "視聴・検索履歴をもとにした未視聴動画";
+            }
+          }
+        }
+        state.homeItems = state.lastItems.slice(0, 20);
+        state.homePool = state.lastItems.slice(20);
+        renderHomeItems();
+        history.replaceState(null, "", hash || (path === "trending?region=JP" ? "#home" : `#search=${encodeURIComponent(heading)}`));
+      } catch (error) {
+        if (error.name === "AbortError") return;
+        showEmpty("動画を取得できません", "接続先を自動で切り替えましたが、現在応答するインスタンスがありません。");
+      }
+    }
+
+    function loadNews() {
+      return loadHome("search?q=%E3%83%8B%E3%83%A5%E3%83%BC%E3%82%B9&type=video&region=JP", "ニュース", "#news", true);
+    }
+
+    function readSearchHistory() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(SEARCH_HISTORY_KEY) || "[]");
+        return Array.isArray(saved)
+          ? saved.map((entry) => typeof entry === "string" ? entry : entry?.term).filter(Boolean).slice(0, 20)
+          : [];
+      } catch (_) {
+        return [];
+      }
+    }
+
+    function writeSearchHistory(items) {
+      try { localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(items.slice(0, 20))); } catch (_) {}
+    }
+
+    function saveSearchTerm(query) {
+      const value = String(query || "").trim();
+      if (!value) return;
+      writeSearchHistory([value, ...readSearchHistory().filter((term) => term.toLowerCase() !== value.toLowerCase())]);
+    }
+
+    function hideSearchHistory() {
+      $("#searchHistoryPanel").classList.add("hidden");
+    }
+
+    function renderSearchHistory(filter = "") {
+      const panel = $("#searchHistoryPanel");
+      const value = String(filter || "").trim().toLowerCase();
+      const terms = readSearchHistory().filter((term) => !value || term.toLowerCase().includes(value));
+      panel.innerHTML = `
+        <div class="search-history-header">
+          <span>検索履歴</span>
+          ${terms.length ? `<button class="search-history-clear" type="button" data-clear-search-history>すべて削除</button>` : ""}
+        </div>
+        <div class="search-history-list">
+          ${terms.length
+            ? terms.map((term) => `
+              <div class="search-history-row" role="option">
+                <button class="search-history-term" type="button" data-search-term="${escapeHtml(term)}">
+                  ${icon("history", "icon small")}<span>${escapeHtml(term)}</span>
+                </button>
+                <button class="search-history-remove" type="button" data-remove-search-term="${escapeHtml(term)}" aria-label="${escapeHtml(term)}を削除">${icon("x", "icon small")}</button>
+              </div>`).join("")
+            : `<div class="search-history-row"><span class="search-history-term">${icon("history", "icon small")}<span>検索履歴はありません</span></span></div>`}
+        </div>`;
+      panel.querySelectorAll("[data-search-term]").forEach((button) => {
+        button.addEventListener("click", () => {
+          $("#searchInput").value = button.dataset.searchTerm;
+          hideSearchHistory();
+          search(button.dataset.searchTerm);
+        });
+      });
+      panel.querySelectorAll("[data-remove-search-term]").forEach((button) => {
+        button.addEventListener("click", (event) => {
+          event.stopPropagation();
+          writeSearchHistory(readSearchHistory().filter((term) => term !== button.dataset.removeSearchTerm));
+          renderSearchHistory($("#searchInput").value);
+        });
+      });
+      panel.querySelector("[data-clear-search-history]")?.addEventListener("click", () => {
+        writeSearchHistory([]);
+        renderSearchHistory($("#searchInput").value);
+      });
+      panel.classList.remove("hidden");
+    }
+
+    const RECOMMENDATION_STOP_WORDS = new Set([
+      "動画", "公式", "チャンネル", "日本", "見る", "見て", "紹介", "まとめ", "最新",
+      "完全", "無料", "ライブ", "shorts", "youtube", "youtu", "さん", "これ", "それ",
+      "ため", "よう", "こと", "もの", "する", "なる", "できる", "について"
+    ]);
+    function recommendationTokens(text) {
+      const plain = String(text || "")
+        .replace(/<[^>]*>/g, " ")
+        .replace(/https?:\/\/\S+/g, " ");
+      const matches = plain.match(/[一-龯々]{2,}|[ぁ-んァ-ヶー]{3,}|[A-Za-z][A-Za-z0-9_-]{2,}/g) || [];
+      return matches
+        .map((token) => token.trim().toLowerCase())
+        .filter((token) => token.length >= 2 && !RECOMMENDATION_STOP_WORDS.has(token) && !/^\d+$/.test(token));
+    }
+
+    function recommendationQueries() {
+      const scores = new Map();
+      const addTokens = (text, weight) => {
+        for (const token of recommendationTokens(text)) {
+          scores.set(token, (scores.get(token) || 0) + weight);
+        }
+      };
+      const titlePhrases = readHistory().slice(0, 8).map((item, index) => {
+        const weight = Math.max(1, 13 - index);
+        const titleTokens = recommendationTokens(item.title);
+        const descriptionTokens = recommendationTokens(item.description);
+        addTokens(item.title, weight * 5);
+        addTokens(item.description, weight);
+        addTokens(item.author, weight * 2);
+        return [...new Set([...titleTokens.slice(0, 2), ...descriptionTokens.slice(0, 1)])].join(" ");
+      }).filter((query) => query.length >= 2);
+      readSearchHistory().slice(0, 8).forEach((term) => addTokens(term, 8));
+      const rankedTokens = [...scores.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .map(([token]) => token)
+        .slice(0, 8);
+      return [...new Set([...titlePhrases, ...rankedTokens])]
+        .filter((query) => query.trim().length >= 2)
+        .slice(0, 4);
+    }
+
+    async function searchRecommendationVideos(query) {
+      const data = await api(`search?q=${encodeURIComponent(query)}&type=video&region=JP`);
+      const result = Array.isArray(data) ? data : (data.videos || data.items || []);
+      return withoutLive(result);
+    }
+
+    async function personalizedItems(seedItems = []) {
+      const queries = recommendationQueries();
+      const historyVideoIds = new Set(readHistory().map((item) => item.videoId));
+      const historyItems = [];
+      for (const query of queries) {
+        try {
+          historyItems.push(...(await searchRecommendationVideos(query)).filter((item) => !historyVideoIds.has(item.videoId)));
+        } catch (_) {}
+      }
+      personalizedItems.lastQueries = queries;
+      const unseen = uniqueVideoItems([...historyItems, ...seedItems], historyVideoIds);
+      return diversifyRecommendations(unseen);
+    }
+
+    function diversifyRecommendations(items) {
+      const channels = new Map();
+      for (const item of uniqueVideoItems(items)) {
+        const normalized = normalizeItem(item);
+        const channelKey = String(normalized.authorId || normalized.author || normalized.videoId).trim().toLowerCase();
+        if (!channels.has(channelKey)) channels.set(channelKey, []);
+        channels.get(channelKey).push(item);
+      }
+      const diversified = [];
+      const queues = [...channels.values()];
+      const rounds = Math.max(0, ...queues.map((queue) => queue.length));
+      for (let round = 0; round < rounds; round += 1) {
+        for (const queue of queues) {
+          if (queue[round]) diversified.push(queue[round]);
+        }
+      }
+      return diversified;
+    }
+
+    function isHikakinVideo(item) {
+      const normalized = normalizeItem(item);
+      return /ヒカキン|hikakin/i.test(`${normalized.author} ${normalized.title}`);
+    }
+
+    function isNamedRecommendation(item, matcher) {
+      const normalized = normalizeItem(item);
+      return matcher.test(`${normalized.author} ${normalized.title}`);
+    }
+
+    async function addNamedRecommendations(seedItems = []) {
+      const groups = [
+        { query: "ヒカキン", count: 4, matcher: /ヒカキン|hikakin/i },
+        { query: "佐倉あましん", count: 3, matcher: /佐倉あましん|sakura.?amashin/i },
+        { query: "ネオチューバー", count: 4, matcher: /ネオチューバー|neo.?tuber/i }
+      ];
+      const fetched = [];
+      for (const group of groups) {
+        try {
+          fetched.push(uniqueVideoItems(await searchRecommendationVideos(group.query)).slice(0, group.count));
+        } catch (_) {
+          fetched.push([]);
+        }
+      }
+      const regular = uniqueVideoItems(seedItems).filter(
+        (item) => !groups.some((group) => isNamedRecommendation(item, group.matcher))
+      );
+      const extras = [];
+      let groupIndex = 0;
+      while (fetched.some((items) => items.length)) {
+        const items = fetched[groupIndex % fetched.length];
+        if (items.length) extras.push(items.shift());
+        groupIndex += 1;
+      }
+      const mixed = [];
+      let extraIndex = 0;
+      regular.forEach((item, index) => {
+        mixed.push(item);
+        const target = Math.round((extraIndex + 1) * regular.length / (extras.length + 1));
+        while (extraIndex < extras.length && index + 1 >= target) {
+          mixed.push(extras[extraIndex++]);
+        }
+      });
+      mixed.push(...extras.slice(extraIndex));
+      return uniqueVideoItems(mixed);
+    }
+
+    async function search(query) {
+      const value = query.trim();
+      if (!value) return loadHome();
+      const videoId = parseVideoId(value);
+      if (videoId) return openVideo(videoId);
+      saveSearchTerm(value);
+      document.querySelectorAll("#chips .chip").forEach((chip) => chip.classList.toggle("active", chip.dataset.query === value));
+      await loadHome(`search?q=${encodeURIComponent(value)}&type=video&region=JP`, `「${value}」の検索結果`, `#search=${encodeURIComponent(value)}`);
+    }
+
+    function channelIdFrom(id, url) {
+      if (id) return String(id);
+      return String(url || "").match(/\/channel\/([^/?#]+)/i)?.[1] || "";
+    }
+
+    function channelBanner(item) {
+      const banners = item?.authorBanners || item?.authorBanner || item?.banners || [];
+      if (Array.isArray(banners)) return banners[0]?.url || banners[0] || "";
+      return typeof banners === "string" ? banners : banners?.url || "";
+    }
+
+    function localizeChannelName(value) {
+      const name = String(value || "").trim();
+      const aliases = {
+        "rocket reimu (jp)": "ロケット霊夢",
+        "rocket reimu": "ロケット霊夢"
+      };
+      return aliases[name.toLowerCase()] || name;
+    }
+
+    function localizeChannelDescription(value) {
+      let text = stripHtml(value || "").replace(/\r\n/g, "\n").trim();
+      const translations = [
+        [/This description is only shown to users whose YouTube language is set to English\.\s*/gi, ""],
+        [/This video is entirely fictional\. Any resemblance to actual persons, organizations, companies, or events is purely coincidental\./gi, "この動画は完全なフィクションです。実在の人物、団体、企業、出来事などに似ている場合も、すべて偶然の一致です。"],
+        [/\[PC SPECS\]/gi, "[PCスペック]"],
+        [/\[Business Inquiries\]/gi, "[仕事の依頼について]"],
+        [/Please note that I am not accepting any business proposals, sponsorships, promotional offers, or sales inquiries for this channel or any related social media accounts/gi, "このチャンネルおよび関連するSNSアカウントでは、業務提案、スポンサー、宣伝、営業などのご連絡は受け付けていません"],
+        [/This description was written and translated with the assistance of ChatGPT\./gi, "この概要欄はChatGPTの協力を得て作成・翻訳されています。"]
+      ];
+      translations.forEach(([pattern, replacement]) => { text = text.replace(pattern, replacement); });
+      return text.replace(/\n{3,}/g, "\n\n").trim();
+    }
+
+    const CHANNEL_TABS = {
+      home: { label: "ホーム", filter: "" },
+      videos: { label: "動画", filter: "videos" },
+      shorts: { label: "ショート", filter: "shorts" },
+      live: { label: "ライブ", filter: "livestreams" },
+      playlists: { label: "再生リスト", filter: "" }
+    };
+
+    function channelTabPath(channelId, tab = "home", continuation = "") {
+      const config = CHANNEL_TABS[tab] || CHANNEL_TABS.home;
+      const params = new URLSearchParams({ hl: "ja" });
+      if (config.filter) params.set("filter", config.filter);
+      if (continuation) params.set("continuation", continuation);
+      return `channels/${encodeURIComponent(channelId)}?${params.toString()}`;
+    }
+
+    function setActiveChannelTab(tab) {
+      document.querySelectorAll(".channel-tab").forEach((button) => {
+        const active = button.dataset.channelTab === tab;
+        button.classList.toggle("active", active);
+        button.setAttribute("aria-selected", String(active));
+      });
+    }
+
+    function channelItemsForTab(items, tab) {
+      return uniqueVideoItems(items, new Set(), tab === "live");
+    }
+
+    function channelPlaylistHtml(playlist) {
+      const id = playlist.playlistId || playlist.id || "";
+      const title = playlist.title || playlist.name || "再生リスト";
+      const count = playlist.videoCount ?? playlist.videos ?? playlist.videoCountText ?? "";
+      const thumbnails = playlist.playlistThumbnails || playlist.thumbnails || [];
+      const image = playlist.playlistThumbnail || playlist.thumbnail
+        || (Array.isArray(thumbnails) ? thumbnails[thumbnails.length - 1]?.url || thumbnails[0] : "")
+        || "";
+      const href = id ? `https://www.youtube.com/playlist?list=${encodeURIComponent(id)}` : "#";
+      return `
+        <a class="playlist-card" href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">
+          ${image ? `<img class="playlist-thumbnail" src="${escapeHtml(image)}" loading="lazy" alt="">` : `<svg class="icon large" aria-hidden="true"><use href="#i-library"></use></svg>`}
+          <div class="playlist-card-body">
+            <h3>${escapeHtml(title)}</h3>
+            <p>${count ? `${escapeHtml(count)}本` : "再生リスト"}</p>
+          </div>
+        </a>`;
+    }
+
+    function renderChannelPlaylists(data) {
+      const playlists = Array.isArray(data) ? [] : (data.playlists || data.channelPlaylists || []);
+      $("#videoGrid").className = "playlist-grid";
+      $("#videoGrid").innerHTML = playlists.length
+        ? playlists.map(channelPlaylistHtml).join("")
+        : `<div class="empty" style="grid-column:1/-1">${icon("library", "icon large")}<div><h2>再生リストがありません</h2><p>このチャンネルの公開再生リストは見つかりませんでした。</p></div></div>`;
+      $("#loadMoreWrap").classList.add("hidden");
+    }
+
+    function renderChannelHeader(data = {}) {
+      const author = localizeChannelName(data.author || state.channelAuthor || "チャンネル");
+      const avatar = channelThumbnail(data);
+      const banner = channelBanner(data);
+      $("#channelBanner").innerHTML = banner
+        ? `<img src="${escapeHtml(banner)}" alt="">`
+        : "";
+      $("#channelHeaderAvatar").innerHTML = avatar
+        ? `<img src="${escapeHtml(avatar)}" alt="${escapeHtml(author)}のアイコン">`
+        : initials(author);
+      $("#channelHeaderName").textContent = author;
+      const subscribers = data.subCount ?? data.subscriberCount ?? data.subscribers;
+      const videos = data.videoCount ?? data.videosCount;
+      $("#channelHeaderStats").textContent = [
+        subscribers ? `${formatCount(subscribers)} 人のチャンネル登録者` : "",
+        videos ? `${formatCount(videos)} 本の動画` : ""
+      ].filter(Boolean).join(" ・ ");
+      const description = localizeChannelDescription(data.description || data.descriptionHtml || "");
+      $("#channelAbout").textContent = description;
+      $("#channelAbout").classList.toggle("hidden", !description);
+      $("#channelSubscribeButton").classList.toggle(
+        "subscribed",
+        state.subscriptions.some((channel) => subscriptionKey(channel) === subscriptionKey({ authorId: data.authorId || state.channelId, author }))
+      );
+      $("#channelSubscribeButton").textContent = state.subscriptions.some(
+        (channel) => subscriptionKey(channel) === subscriptionKey({ authorId: data.authorId || state.channelId, author })
+      ) ? "登録解除" : "チャンネル登録";
+    }
+
+    async function openChannel(id, url = "", author = "チャンネル", tab = "home") {
+      const channelId = channelIdFrom(id, url);
+      if (!channelId) return showToast("このチャンネルのホームを取得できません");
+      stopPlayback();
+      const channelTab = CHANNEL_TABS[tab] ? tab : "home";
+      state.route = "channel";
+      $("#clearHistoryButton").classList.add("hidden");
+      state.channelId = channelId;
+      state.channelUrl = url;
+      state.channelAuthor = localizeChannelName(author);
+      state.channelData = null;
+      state.watchPlaylistId = null;
+      state.channelContinuation = "";
+      state.channelTab = channelTab;
+      state.channelFilter = "";
+      state.channelSort = "latest";
+      state.lastPath = channelTabPath(channelId, channelTab);
+      state.homePage = 1;
+      state.homeItems = [];
+      state.homePool = [];
+      state.homeLoading = false;
+      $("#homePage").classList.remove("hidden");
+      $("#watchPage").classList.add("hidden");
+      $("#playlistPage").classList.add("hidden");
+      $("#messagePage").classList.add("hidden");
+      $("#channelHeader").classList.remove("hidden");
+      $("#channelDashboard").classList.add("hidden");
+      $("#chips").classList.add("hidden");
+      setActiveChannelTab(channelTab);
+      $("#pageHeading").textContent = localizeChannelName(author || "チャンネル");
+      $("#pageSubheading").textContent = `チャンネル${CHANNEL_TABS[channelTab].label}`;
+      $("#videoGrid").className = "video-grid";
+      renderSkeleton(20);
+      try {
+        const data = await api(state.lastPath);
+        state.channelData = data;
+        const items = Array.isArray(data) ? data : (data.videos || data.latestVideos || data.items || []);
+        state.channelContinuation = data.continuation || "";
+        state.lastItems = channelItemsForTab(items, channelTab);
+        state.homeItems = state.lastItems.slice(0, 20);
+        state.homePool = state.lastItems.slice(20);
+        if (channelTab === "playlists") {
+          renderChannelHeader(data);
+          renderChannelPlaylists(data);
+        } else {
+          if (data.author) {
+            state.channelAuthor = localizeChannelName(data.author);
+            $("#pageHeading").textContent = state.channelAuthor;
+          }
+          renderChannelHeader(data);
+          renderChannelDashboard(data);
+          renderHomeItems();
+        }
+        history.replaceState(null, "", `#channel=${encodeURIComponent(channelId)}&tab=${encodeURIComponent(channelTab)}`);
+      } catch (error) {
+        if (error.name === "AbortError") return;
+        showEmpty("チャンネルを取得できません", "このチャンネルに応答するインスタンスがありません。");
+      }
+    }
+
+    function parseVideoId(value) {
+      try {
+        const url = new URL(value);
+        if (!/(youtube\.com|youtu\.be)$/i.test(url.hostname.replace(/^www\./, ""))) return "";
+        if (url.hostname.includes("youtu.be")) return url.pathname.slice(1).split("/")[0];
+        return url.searchParams.get("v") || "";
+      } catch (_) {
+        return /^[A-Za-z0-9_-]{11}$/.test(value) ? value : "";
+      }
+    }
+
+    function readHistory() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
+        return Array.isArray(saved) ? saved.filter((item) => item && item.videoId) : [];
+      } catch (_) {
+        return [];
+      }
+    }
+
+    function writeHistory(items) {
+      try { localStorage.setItem(HISTORY_KEY, JSON.stringify(items.slice(0, 30))); } catch (_) {}
+    }
+
+    function saveHistory(item) {
+      if (!item?.videoId) return;
+      writeHistory([item, ...readHistory().filter((entry) => entry.videoId !== item.videoId)]);
+    }
+
+    function removeHistoryItem(videoId) {
+      writeHistory(readHistory().filter((item) => item.videoId !== videoId));
+      loadHistory();
+      showToast("履歴から削除しました");
+    }
+
+    function clearHistory() {
+      if (!readHistory().length) return;
+      if (!confirm("視聴履歴をすべて削除しますか？")) return;
+      writeHistory([]);
+      loadHistory();
+      showToast("視聴履歴をすべて削除しました");
+    }
+
+    function readPlaylists() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(PLAYLISTS_KEY) || "[]");
+        return Array.isArray(saved) ? saved.filter((list) => list && list.id && list.name) : [];
+      } catch (_) {
+        return [];
+      }
+    }
+
+    function writePlaylists() {
+      try { localStorage.setItem(PLAYLISTS_KEY, JSON.stringify(state.playlists)); } catch (_) {}
+    }
+
+    function exportPlaylists() {
+      const payload = {
+        format: "mikanTube-playlists",
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        playlists: state.playlists
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `mikanTube-playlists-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      showToast("再生リストを書き出しました");
+    }
+
+    async function importPlaylists(file) {
+      if (!file) return;
+      try {
+        const parsed = JSON.parse(await file.text());
+        const source = Array.isArray(parsed) ? parsed : parsed.playlists;
+        if (!Array.isArray(source)) throw new Error("再生リスト形式ではありません");
+        const imported = source.map((entry) => {
+          const items = Array.isArray(entry?.items)
+            ? entry.items.map(normalizeItem).filter((item) => item.videoId)
+            : [];
+          return {
+            id: playlistId(),
+            name: String(entry?.name || "インポートした再生リスト").trim().slice(0, 80) || "インポートした再生リスト",
+            items: items.filter((item, index, all) => all.findIndex((candidate) => candidate.videoId === item.videoId) === index),
+            createdAt: Date.now()
+          };
+        }).filter((entry) => entry.name);
+        if (!imported.length) throw new Error("読み込める再生リストがありません");
+        state.playlists = [...imported, ...state.playlists];
+        writePlaylists();
+        renderPlaylistCards();
+        showToast(`${imported.length}件の再生リストを読み込みました`);
+      } catch (error) {
+        showToast(error.message || "インポートに失敗しました");
+      } finally {
+        $("#importPlaylistsInput").value = "";
+      }
+    }
+
+    function playlistId() {
+      return `playlist-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    }
+
+    function createPlaylist(name, item = null) {
+      const value = String(name || "").trim();
+      if (!value) return null;
+      const list = { id: playlistId(), name: value, items: item?.videoId ? [item] : [], createdAt: Date.now() };
+      state.playlists.unshift(list);
+      writePlaylists();
+      return list;
+    }
+
+    function addItemToPlaylist(list, item) {
+      if (!list || !item?.videoId) return false;
+      if (list.items.some((entry) => entry.videoId === item.videoId)) return false;
+      list.items.push(item);
+      writePlaylists();
+      return true;
+    }
+
+    function renderPlaylistCards() {
+      const grid = $("#playlistGrid");
+      grid.className = "playlist-grid";
+      grid.innerHTML = state.playlists.length
+        ? state.playlists.map((list) => `
+          <article class="playlist-card">
+            <svg class="icon large" aria-hidden="true"><use href="#i-library"></use></svg>
+            <div class="playlist-card-body">
+              <h3>${escapeHtml(list.name)}</h3>
+              <p>${list.items.length.toLocaleString("ja-JP")}本</p>
+            </div>
+            <div class="playlist-card-actions">
+              <button class="playlist-open-button" type="button" data-open-playlist="${escapeHtml(list.id)}">開く</button>
+              <button class="playlist-delete-button" type="button" data-delete-playlist="${escapeHtml(list.id)}">削除</button>
+            </div>
+          </article>`).join("")
+        : `<div class="empty" style="grid-column:1/-1;min-height:220px">${icon("library", "icon large")}<div><h2>再生リストはありません</h2><p>動画ページの「再生リストに追加」から作成できます。</p></div></div>`;
+      grid.querySelectorAll("[data-open-playlist]").forEach((button) => {
+        button.addEventListener("click", () => openPlaylist(button.dataset.openPlaylist));
+      });
+      grid.querySelectorAll("[data-delete-playlist]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const list = state.playlists.find((entry) => entry.id === button.dataset.deletePlaylist);
+          if (!list || !confirm(`「${list.name}」を削除しますか？`)) return;
+          state.playlists = state.playlists.filter((entry) => entry.id !== list.id);
+          writePlaylists();
+          renderPlaylistCards();
+          showToast("再生リストを削除しました");
+        });
+      });
+    }
+
+    function openPlaylist(id) {
+      const list = state.playlists.find((entry) => entry.id === id);
+      if (!list) return loadPlaylists();
+      stopPlayback();
+      state.route = "playlists";
+      state.activePlaylistId = id;
+      $("#homePage").classList.add("hidden");
+      $("#watchPage").classList.add("hidden");
+      $("#playlistPage").classList.remove("hidden");
+      $("#messagePage").classList.add("hidden");
+      $("#playlistHeading").textContent = list.name;
+      $("#playlistSubheading").textContent = `${list.items.length.toLocaleString("ja-JP")}本の動画`;
+      $("#playlistBackButton").classList.remove("hidden");
+      $("#playlistForm").classList.add("hidden");
+      $("#playlistGrid").className = "playlist-detail";
+      $("#playlistGrid").innerHTML = list.items.length
+        ? list.items.map((item) => `<div class="playlist-video-row" data-playlist-id="${escapeHtml(list.id)}">${cardHtml(item)}<button class="playlist-remove-button" type="button" data-remove-video="${escapeHtml(item.videoId)}" aria-label="再生リストから削除">削除</button></div>`).join("")
+        : `<div class="empty" style="min-height:220px"><div><h2>動画がありません</h2><p>動画ページから追加できます。</p></div></div>`;
+      bindCards($("#playlistGrid"));
+      $("#playlistGrid").querySelectorAll("[data-remove-video]").forEach((button) => {
+        button.addEventListener("click", () => {
+          list.items = list.items.filter((item) => item.videoId !== button.dataset.removeVideo);
+          writePlaylists();
+          openPlaylist(id);
+          showToast("再生リストから削除しました");
+        });
+      });
+    }
+
+    function loadPlaylists() {
+      stopPlayback();
+      state.route = "playlists";
+      state.watchPlaylistId = null;
+      state.activePlaylistId = null;
+      state.playlists = readPlaylists();
+      $("#homePage").classList.add("hidden");
+      $("#watchPage").classList.add("hidden");
+      $("#playlistPage").classList.remove("hidden");
+      $("#messagePage").classList.add("hidden");
+      $("#channelHeader").classList.add("hidden");
+      $("#channelDashboard").classList.add("hidden");
+      $("#chips").classList.remove("hidden");
+      $("#playlistHeading").textContent = "再生リスト";
+      $("#playlistSubheading").textContent = "このブラウザに保存されます";
+      $("#playlistBackButton").classList.add("hidden");
+      $("#playlistForm").classList.remove("hidden");
+      renderPlaylistCards();
+    }
+
+    function closePlaylistPicker() {
+      $("#playlistPickerBackdrop").classList.add("hidden");
+    }
+
+    function openPlaylistPicker() {
+      if (!state.currentVideo) return showToast("動画を読み込んでから追加してください");
+      const list = $("#playlistPickerList");
+      list.innerHTML = state.playlists.length
+        ? state.playlists.map((entry) => `<button type="button" data-picker-playlist="${escapeHtml(entry.id)}">${escapeHtml(entry.name)}（${entry.items.length.toLocaleString("ja-JP")}本）</button>`).join("")
+        : "<p>まだ再生リストがありません。下から作成できます。</p>";
+      list.querySelectorAll("[data-picker-playlist]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const target = state.playlists.find((entry) => entry.id === button.dataset.pickerPlaylist);
+          if (!addItemToPlaylist(target, state.currentVideo)) return showToast("この動画は追加済みです");
+          closePlaylistPicker();
+          showToast(`「${target.name}」に追加しました`);
+        });
+      });
+      $("#playlistPickerBackdrop").classList.remove("hidden");
+    }
+
+    function stopPlayback() {
+      const player = $("#player");
+      const audio = $("#audioPlayer");
+      state.playbackGeneration += 1;
+      if (player) {
+        player.pause();
+        player.removeAttribute("src");
+        player.load();
+      }
+      if (audio) {
+        audio.pause();
+        audio.removeAttribute("src");
+        audio.load();
+      }
+      state.currentVideo = null;
+      state.currentStreams = [];
+      state.currentStream = null;
+      state.currentAudioStream = null;
+      state.downloadStream = null;
+      setPlayerLoading(false);
+    }
+
+    function setPlayerLoading(isLoading, message = "動画を読み込み中…") {
+      const loading = $("#playerLoading");
+      const player = $("#player");
+      if (!loading || !player) return;
+      loading.classList.toggle("hidden", !isLoading);
+      $("#playerLoadingText").textContent = message;
+      player.setAttribute("aria-busy", String(isLoading));
+    }
+
+    function streamQuality(stream) {
+      const values = [
+        stream.qualityLabel,
+        stream.resolution,
+        stream.quality,
+        stream.size
+      ].map((value) => String(value || ""));
+      const value = values.find((entry) => /(?:\d{3,4}p|\d{3,5}x\d{3,4})/i.test(entry))
+        || values.find(Boolean)
+        || "";
+      const match = value.match(/(\d{3,4})p/i);
+      const dimensionMatch = value.match(/\d{3,5}x(\d{3,4})/i);
+      return match ? `${match[1]}p` : dimensionMatch ? `${dimensionMatch[1]}p` : (value || "標準");
+    }
+
+    function qualityNumber(stream) {
+      return Number(streamQuality(stream).match(/\d+/)?.[0] || 0);
+    }
+
+    function getQualityStreams(video) {
+      const probe = document.createElement("video");
+      const supports = (stream) => {
+        const type = String(stream.type || "").trim();
+        return !type || !probe.canPlayType(type) ? !type : true;
+      };
+      const progressive = (video.formatStreams || [])
+        .filter((stream) => {
+          const type = String(stream.type || "").toLowerCase();
+          return stream.url && (!type || type.includes("video/"));
+        })
+        .map((stream) => ({ ...stream, _progressive: true }));
+      const adaptive = (video.adaptiveFormats || [])
+        .filter((stream) => {
+          const type = String(stream.type || "").toLowerCase();
+          return stream.url && type.includes("video/") && !type.includes("audio/");
+        })
+        .map((stream) => ({ ...stream, _progressive: false }));
+      const streams = [...progressive, ...adaptive]
+        .sort((a, b) => Number(supports(b)) - Number(supports(a))
+          || qualityNumber(b) - qualityNumber(a)
+          || Number(b._progressive) - Number(a._progressive)
+          || (Number(b.bitrate) || 0) - (Number(a.bitrate) || 0));
+      const seen = new Set();
+      return streams.filter((stream) => {
+        const quality = streamQuality(stream);
+        if (seen.has(quality)) return false;
+        seen.add(quality);
+        return true;
+      });
+    }
+
+    function getAudioStream(video) {
+      return (video.adaptiveFormats || [])
+        .filter((stream) => {
+          const type = String(stream.type || "").toLowerCase();
+          return stream.url && type.includes("audio/");
+        })
+        .sort((a, b) => {
+          const supported = (stream) => /audio\/(mp4|webm|ogg)/i.test(String(stream.type || ""));
+          return Number(supported(b)) - Number(supported(a))
+            || (Number(b.bitrate) || 0) - (Number(a.bitrate) || 0);
+        })[0] || null;
+    }
+
+    function getDownloadStream(streams) {
+      const candidates = (Array.isArray(streams) ? streams : [])
+        .filter((stream) => {
+          if (!stream?._progressive || !stream.url) return false;
+          const type = String(stream.type || "").toLowerCase();
+          const container = String(stream.container || "").toLowerCase();
+          return /video\/(mp4|webm)/i.test(type) || /^(mp4|webm|webp)$/i.test(container);
+        })
+        .sort((a, b) => {
+          const typeScore = (stream) => /mp4/i.test(String(stream.type || stream.container || "")) ? 2 : 1;
+          const targetQuality = (stream) => {
+            const quality = qualityNumber(stream);
+            return quality > 0 && quality <= 720 ? quality : 0;
+          };
+          return typeScore(b) - typeScore(a)
+            || targetQuality(b) - targetQuality(a)
+            || qualityNumber(b) - qualityNumber(a)
+            || (Number(b.bitrate) || 0) - (Number(a.bitrate) || 0);
+        });
+      return candidates[0] || null;
+    }
+
+    function renderQualityOptions(streams, selectedStream) {
+      const select = $("#qualitySelect");
+      select.innerHTML = streams.length
+        ? streams.map((stream, index) => {
+          const suffix = stream._progressive
+            ? "（音声付き）"
+            : "（映像のみ）";
+          return `<option value="${index}">${escapeHtml(streamQuality(stream))}${suffix}${stream.container ? ` (${escapeHtml(stream.container.toUpperCase())})` : ""}</option>`;
+        }).join("")
+        : "<option>画質情報なし</option>";
+      select.disabled = streams.length < 2;
+      const selectedIndex = streams.indexOf(selectedStream);
+      if (selectedIndex >= 0) select.value = String(selectedIndex);
+    }
+
+    function syncAudioToVideo() {
+      const player = $("#player");
+      const audio = $("#audioPlayer");
+      if (!audio.src || !Number.isFinite(player.currentTime) || audio.readyState < HTMLMediaElement.HAVE_METADATA) return;
+      const drift = player.currentTime - audio.currentTime;
+      const baseRate = player.playbackRate || 1;
+      if (!Number.isFinite(drift)) return;
+      if (Math.abs(drift) > 0.9) {
+        try { audio.currentTime = player.currentTime; } catch (_) {}
+      }
+      audio.playbackRate = !player.paused && Math.abs(drift) > 0.04
+        ? baseRate * Math.min(1.04, Math.max(0.96, 1 + drift * 0.08))
+        : baseRate;
+    }
+
+    function setPlayerStream(stream, preservePosition = false) {
+      const player = $("#player");
+      const audio = $("#audioPlayer");
+      const generation = ++state.playbackGeneration;
+      const wasPlaying = !player.paused && !player.ended;
+      const currentTime = preservePosition ? player.currentTime : 0;
+      state.currentStream = stream;
+      setPlayerLoading(true, preservePosition ? "画質を切り替え中…" : "動画を読み込み中…");
+      if (stream._progressive || !state.currentAudioStream) {
+        audio.pause();
+        audio.removeAttribute("src");
+        audio.load();
+      } else {
+        audio.src = state.currentAudioStream.url;
+        audio.load();
+        audio.volume = player.volume;
+        audio.muted = player.muted;
+        audio.playbackRate = player.playbackRate;
+      }
+      player.addEventListener("loadedmetadata", () => {
+        if (generation !== state.playbackGeneration || state.currentStream !== stream) return;
+        if (preservePosition && Number.isFinite(currentTime)) {
+          player.currentTime = Math.min(currentTime, Number.isFinite(player.duration) ? player.duration : currentTime);
+        }
+        syncAudioToVideo();
+        if (wasPlaying) player.play().catch(() => {});
+      }, { once: true });
+      player.src = stream.url;
+      player.load();
+    }
+
+    function uniqueVideoItems(items, blockedIds = new Set(), includeLive = false) {
+      const seen = new Set(blockedIds);
+      return (Array.isArray(items) ? items : []).filter((item) => {
+        const id = item.videoId || item.id || "";
+        if (!id || seen.has(id) || (!includeLive && isLive(item))) return false;
+        seen.add(id);
+        return true;
+      });
+    }
+
+    function renderSidePanel() {
+      const list = state.playlists.find((entry) => entry.id === state.watchPlaylistId);
+      const sideList = $("#nextList");
+      if (list) {
+        $("#sideTitle").textContent = list.name;
+        sideList.className = "side-list playlist-side";
+        sideList.innerHTML = `
+          <p class="playlist-side-label">${list.items.length.toLocaleString("ja-JP")}本の動画</p>
+          ${list.items.map((item, index) => `
+            <button class="playlist-side-row ${item.videoId === state.currentVideo?.videoId ? "active" : ""}" type="button" data-playlist-video="${escapeHtml(item.videoId)}" aria-label="${escapeHtml(item.title)}">
+              <div class="thumb"><img src="${escapeHtml(thumbnail(item))}" loading="lazy" alt=""></div>
+              <div><h3>${index + 1}. ${escapeHtml(item.title)}</h3><p>${escapeHtml(item.author)}</p></div>
+            </button>`).join("")}`;
+        sideList.querySelectorAll("[data-playlist-video]").forEach((button) => {
+          button.addEventListener("click", () => openVideo(button.dataset.playlistVideo, list.id));
+        });
+        return;
+      }
+      $("#sideTitle").textContent = "次の動画";
+      sideList.className = "side-list";
+      sideList.innerHTML = state.nextItems.length
+        ? state.nextItems.map((entry) => cardHtml(entry, true)).join("")
+        : "<p>関連動画はありません。</p>";
+      bindCards(sideList);
+    }
+
+    async function prepareNextVideos(raw, videoId) {
+      state.nextItems = [];
+      const recommended = uniqueVideoItems(raw.recommendedVideos || [], new Set([videoId]));
+      state.nextItems = recommended.slice(0, 8);
+      renderSidePanel();
+    }
+
+    async function downloadCurrentVideo() {
+      const button = $("#downloadButton");
+      const stream = state.downloadStream;
+      if (!stream?.url) return showToast("音声付きMP4/WEBMを取得できませんでした");
+      const title = String(state.currentVideo?.title || "mikanTube-video")
+        .replace(/[\\/:*?"<>|]/g, "_")
+        .trim()
+        .slice(0, 80) || "mikanTube-video";
+      const streamFormat = String(stream.container || stream.type || "").toLowerCase();
+      const extension = streamFormat.includes("webp") ? "webp" : streamFormat.includes("webm") ? "webm" : "mp4";
+      button.disabled = true;
+      button.querySelector("span").textContent = "準備中…";
+      try {
+        const response = await fetch(stream.url, { mode: "cors" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const blob = await response.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = objectUrl;
+        link.download = `${title}.${extension}`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+        showToast(`${streamQuality(stream)}の音声付き${extension.toUpperCase()}を保存しました`);
+      } catch (_) {
+        const link = document.createElement("a");
+        link.href = stream.url;
+        link.download = `${title}.${extension}`;
+        link.rel = "noopener noreferrer";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        showToast("音声付きファイルのダウンロードを開始しました");
+      } finally {
+        button.disabled = false;
+        button.querySelector("span").textContent = "音声付きDL";
+      }
+    }
+
+    async function openVideo(videoId, playlistId = "") {
+      stopPlayback();
+      state.route = "watch";
+      state.watchPlaylistId = playlistId || null;
+      $("#downloadButton").disabled = true;
+      $("#homePage").classList.add("hidden");
+      $("#playlistPage").classList.add("hidden");
+      $("#loadMoreWrap").classList.add("hidden");
+      $("#messagePage").classList.add("hidden");
+      $("#watchPage").classList.remove("hidden");
+      $("#watchTitle").textContent = "動画を読み込んでいます";
+      $("#watchAuthor").textContent = "";
+      $("#watchStats").textContent = "";
+      $("#watchDescription").textContent = "";
+      state.currentVideo = null;
+      $("#player").pause();
+      $("#qualitySelect").innerHTML = "<option>読み込み中…</option>";
+      $("#qualitySelect").disabled = true;
+      state.currentStreams = [];
+      state.currentStream = null;
+      state.currentAudioStream = null;
+      state.downloadStream = null;
+      setPlayerLoading(true);
+      $("#sideTitle").textContent = state.watchPlaylistId ? "再生リスト" : "次の動画";
+      $("#nextList").className = state.watchPlaylistId ? "side-list playlist-side" : "side-list";
+      $("#nextList").innerHTML = "";
+      history.pushState(null, "", `#watch=${encodeURIComponent(videoId)}`);
+      window.scrollTo({ top: 0, behavior: "instant" });
+      try {
+        const raw = await api(`videos/${encodeURIComponent(videoId)}`);
+        const item = normalizeItem(raw);
+        const streams = getQualityStreams(raw);
+        state.currentAudioStream = getAudioStream(raw);
+        state.downloadStream = getDownloadStream(streams);
+        const progressive = streams.filter((candidate) => candidate._progressive);
+        const stream = progressive.find((candidate) => qualityNumber(candidate) <= 720 && qualityNumber(candidate) > 0)
+          || progressive[0]
+          || streams.find((candidate) => qualityNumber(candidate) <= 720 && qualityNumber(candidate) > 0)
+          || streams[0];
+        if (!stream?.url) throw new Error("再生URLがありません");
+        state.currentStreams = streams;
+        state.currentVideo = item;
+        saveHistory(item);
+        $("#watchTitle").textContent = item.title;
+        $("#watchAvatar").innerHTML = avatarHtml(item);
+        $("#watchAvatar").dataset.channelId = item.authorId;
+        $("#watchAvatar").dataset.channelUrl = item.authorUrl;
+        $("#watchAvatar").dataset.channelAuthor = item.author;
+        $("#watchAvatar").classList.add("channel-link");
+        $("#watchAvatar").setAttribute("role", "button");
+        $("#watchAvatar").setAttribute("tabindex", "0");
+        $("#watchAvatar").setAttribute("aria-label", `${item.author}のチャンネルを開く`);
+        $("#watchAuthor").textContent = item.author;
+        $("#watchStats").textContent = `${formatCount(item.viewCount)} 回視聴${item.publishedText ? `・${item.publishedText}` : ""}`;
+        applySubscribeButton();
+        $("#watchDescription").textContent = raw.descriptionHtml ? stripHtml(raw.descriptionHtml) : (item.description || "説明はありません。");
+        const player = $("#player");
+        player.poster = thumbnail(item);
+        renderQualityOptions(state.currentStreams, stream);
+        setPlayerStream(stream);
+        $("#downloadButton").disabled = !state.downloadStream;
+        await prepareNextVideos(raw, videoId);
+        if (state.watchPlaylistId) renderSidePanel();
+      } catch (error) {
+        setPlayerLoading(false);
+        $("#watchTitle").textContent = "動画を再生できません";
+        $("#watchDescription").textContent = "この動画の再生URLを取得できませんでした。別の動画をお試しください。";
+        showToast("動画の取得に失敗しました");
+      }
+    }
+
+    function pickStream(video) {
+      const streams = getQualityStreams(video);
+      return streams.find((stream) => Number(stream.resolution?.replace("p", "")) <= 720) || streams[0];
+    }
+
+    function stripHtml(value) {
+      const template = document.createElement("template");
+      template.innerHTML = value;
+      return template.content.textContent || "";
+    }
+
+    function showMessage(title, text) {
+      stopPlayback();
+      $("#homePage").classList.add("hidden");
+      $("#watchPage").classList.add("hidden");
+      $("#playlistPage").classList.add("hidden");
+      $("#loadMoreWrap").classList.add("hidden");
+      $("#messagePage").classList.remove("hidden");
+      $("#channelHeader").classList.add("hidden");
+      $("#channelDashboard").classList.add("hidden");
+      $("#chips").classList.remove("hidden");
+      $("#messageContent").innerHTML = `${icon("library", "icon large")}<div><h2>${escapeHtml(title)}</h2><p>${escapeHtml(text)}</p></div>`;
+    }
+
+    function applySubscribeButton() {
+      const button = $("#subscribeButton");
+      if (!button || !state.currentVideo) return;
+      const subscribed = state.subscriptions.some((channel) => subscriptionKey(channel) === subscriptionKey(state.currentVideo));
+      button.classList.toggle("subscribed", subscribed);
+      button.setAttribute("aria-pressed", String(subscribed));
+      button.querySelector("span").textContent = subscribed ? "登録解除" : "チャンネル登録";
+    }
+
+    function toggleSubscription() {
+      if (!state.currentVideo || !subscriptionKey(state.currentVideo)) return;
+      const key = subscriptionKey(state.currentVideo);
+      const index = state.subscriptions.findIndex((channel) => subscriptionKey(channel) === key);
+      if (index >= 0) {
+        state.subscriptions.splice(index, 1);
+        showToast("チャンネル登録を解除しました");
+      } else {
+        state.subscriptions.unshift({
+          authorId: state.currentVideo.authorId,
+          author: state.currentVideo.author,
+          authorUrl: state.currentVideo.authorUrl,
+          authorThumbnails: state.currentVideo.authorThumbnails
+        });
+        showToast("チャンネルを登録しました");
+      }
+      writeSubscriptions();
+      applySubscribeButton();
+    }
+
+    function toggleChannelSubscription() {
+      if (!state.channelId) return;
+      const channel = {
+        authorId: state.channelId,
+        author: state.channelAuthor,
+        authorUrl: state.channelUrl,
+        authorThumbnails: state.channelData?.authorThumbnails || []
+      };
+      const key = subscriptionKey(channel);
+      const index = state.subscriptions.findIndex((entry) => subscriptionKey(entry) === key);
+      if (index >= 0) {
+        state.subscriptions.splice(index, 1);
+        showToast("チャンネル登録を解除しました");
+      } else {
+        state.subscriptions.unshift(channel);
+        showToast("チャンネルを登録しました");
+      }
+      writeSubscriptions();
+      renderChannelHeader(state.channelData || channel);
+    }
+
+    function subscriptionCardHtml(channel) {
+      const key = subscriptionKey(channel);
+      return `
+        <article class="subscription-card">
+          <div class="channel-avatar channel-link" data-channel-id="${escapeHtml(channel.authorId)}" data-channel-url="${escapeHtml(channel.authorUrl)}" data-channel-author="${escapeHtml(channel.author || "チャンネル不明")}" role="button" tabindex="0" aria-label="${escapeHtml(channel.author || "チャンネル不明")}のチャンネルを開く">${avatarHtml(channel)}</div>
+          <div class="subscription-card-body">
+            <h3>${escapeHtml(channel.author || "チャンネル不明")}</h3>
+            <p>登録済み</p>
+          </div>
+          <button class="unsubscribe-button" type="button" data-subscription-key="${escapeHtml(key)}">登録解除</button>
+        </article>
+      `;
+    }
+
+    function loadSubscriptions() {
+      stopPlayback();
+      state.route = "subscriptions";
+      $("#clearHistoryButton").classList.add("hidden");
+      state.watchPlaylistId = null;
+      state.subscriptions = readSubscriptions();
+      $("#homePage").classList.remove("hidden");
+      $("#watchPage").classList.add("hidden");
+      $("#playlistPage").classList.add("hidden");
+      $("#messagePage").classList.add("hidden");
+      $("#channelHeader").classList.add("hidden");
+      $("#channelDashboard").classList.add("hidden");
+      $("#chips").classList.remove("hidden");
+      $("#loadMoreWrap").classList.add("hidden");
+      $("#pageHeading").textContent = "登録チャンネル";
+      $("#pageSubheading").textContent = "このブラウザに保存されたチャンネル";
+      $("#videoGrid").className = "subscription-grid";
+      $("#videoGrid").innerHTML = state.subscriptions.length
+        ? state.subscriptions.map(subscriptionCardHtml).join("")
+        : `<div class="empty" style="grid-column:1/-1">${icon("users", "icon large")}<div><h2>登録チャンネルはありません</h2><p>動画ページの「チャンネル登録」から追加できます。</p></div></div>`;
+      bindCards($("#videoGrid"));
+      $("#videoGrid").querySelectorAll("[data-subscription-key]").forEach((button) => {
+        button.addEventListener("click", () => {
+          state.subscriptions = state.subscriptions.filter((channel) => subscriptionKey(channel) !== button.dataset.subscriptionKey);
+          writeSubscriptions();
+          loadSubscriptions();
+          showToast("チャンネル登録を解除しました");
+        });
+      });
+    }
+
+    function loadHistory() {
+      stopPlayback();
+      state.route = "history";
+      state.watchPlaylistId = null;
+      const items = readHistory();
+      $("#clearHistoryButton").classList.toggle("hidden", !items.length);
+      if (!items.length) return showMessage("履歴はありません", "視聴した動画がここに表示されます。");
+      $("#homePage").classList.remove("hidden");
+      $("#watchPage").classList.add("hidden");
+      $("#playlistPage").classList.add("hidden");
+      $("#messagePage").classList.add("hidden");
+      $("#channelHeader").classList.add("hidden");
+      $("#channelDashboard").classList.add("hidden");
+      $("#chips").classList.remove("hidden");
+      $("#loadMoreWrap").classList.add("hidden");
+      $("#pageHeading").textContent = "履歴";
+      $("#pageSubheading").textContent = "このブラウザに保存された視聴履歴";
+      $("#videoGrid").className = "video-grid";
+      $("#videoGrid").innerHTML = items.map(historyCardHtml).join("");
+      bindCards($("#videoGrid"));
+      $("#videoGrid").querySelectorAll("[data-remove-history]").forEach((button) => {
+        button.addEventListener("click", (event) => {
+          event.stopPropagation();
+          removeHistoryItem(button.dataset.removeHistory);
+        });
+      });
+    }
+
+    function routeFromHash() {
+      const hash = location.hash;
+      const watch = hash.match(/^#watch=(.+)$/);
+      const searchMatch = hash.match(/^#search=(.+)$/);
+      const channelMatch = hash.match(/^#channel=([^&]+)(?:&tab=([^&]+))?$/);
+      if (hash === "#news") return loadNews();
+      if (watch) return openVideo(decodeURIComponent(watch[1]));
+      if (searchMatch) return search(decodeURIComponent(searchMatch[1]));
+      if (channelMatch) return openChannel(decodeURIComponent(channelMatch[1]), "", "チャンネル", decodeURIComponent(channelMatch[2] || "home"));
+      return loadHome();
+    }
+
+    function showToast(message) {
+      const toast = $("#toast");
+      toast.textContent = message;
+      toast.classList.add("show");
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => toast.classList.remove("show"), 2600);
+    }
+
+    $("#menuButton").addEventListener("click", () => $("#sidebar").classList.toggle("collapsed"));
+    $("#watchAvatar").addEventListener("click", () => {
+      const avatar = $("#watchAvatar");
+      openChannel(avatar.dataset.channelId, avatar.dataset.channelUrl, avatar.dataset.channelAuthor);
+    });
+    $("#watchAvatar").addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        const avatar = $("#watchAvatar");
+        openChannel(avatar.dataset.channelId, avatar.dataset.channelUrl, avatar.dataset.channelAuthor);
+      }
+    });
+    $("#searchForm").addEventListener("submit", (event) => {
+      event.preventDefault();
+      search($("#searchInput").value);
+    });
+    $("#searchInput").addEventListener("focus", () => renderSearchHistory($("#searchInput").value));
+    $("#searchInput").addEventListener("input", () => renderSearchHistory($("#searchInput").value));
+    document.addEventListener("click", (event) => {
+      if (!event.target.closest(".search-wrap")) hideSearchHistory();
+    });
+    $("#chips").addEventListener("click", (event) => {
+      const chip = event.target.closest(".chip");
+      if (!chip) return;
+      $("#searchInput").value = chip.dataset.query;
+      search(chip.dataset.query);
+    });
+    $("#loadMoreButton").addEventListener("click", loadMoreHome);
+    $("#loadAllButton").addEventListener("click", loadAllChannelVideos);
+    $("#channelFilterInput").addEventListener("input", (event) => {
+      if (state.route !== "channel") return;
+      state.channelFilter = event.target.value;
+      renderHomeItems();
+    });
+    $("#channelSortSelect").addEventListener("change", (event) => {
+      if (state.route !== "channel") return;
+      state.channelSort = event.target.value === "popular" ? "popular" : "latest";
+      renderHomeItems();
+    });
+    $("#refreshButton").addEventListener("click", () => state.route === "watch" && state.currentVideo
+      ? openVideo(state.currentVideo.videoId)
+      : state.route === "playlists" ? loadPlaylists()
+      : state.route === "channel" ? openChannel(state.channelId, state.channelUrl, state.channelAuthor)
+      : state.route === "news" ? loadNews()
+      : loadHome(state.lastPath, $("#pageHeading").textContent));
+    $("#backButton").addEventListener("click", () => { history.pushState(null, "", "#home"); loadHome(); });
+    $("#clearHistoryButton").addEventListener("click", clearHistory);
+    $("#subscribeButton").addEventListener("click", toggleSubscription);
+    $("#channelSubscribeButton").addEventListener("click", toggleChannelSubscription);
+    document.querySelectorAll(".channel-tab").forEach((button) => {
+      button.addEventListener("click", () => {
+        if (state.route !== "channel" || !state.channelId) return;
+        openChannel(state.channelId, state.channelUrl, state.channelAuthor, button.dataset.channelTab);
+      });
+    });
+    $("#addToPlaylistButton").addEventListener("click", openPlaylistPicker);
+    $("#downloadButton").addEventListener("click", downloadCurrentVideo);
+    $("#likeButton").addEventListener("click", () => showToast("評価はこのブラウザ内では送信されません"));
+    $("#qualitySelect").addEventListener("change", (event) => {
+      const stream = state.currentStreams[Number(event.target.value)];
+      if (stream && stream !== state.currentStream) setPlayerStream(stream, true);
+    });
+    $("#player").addEventListener("loadstart", () => setPlayerLoading(true));
+    $("#player").addEventListener("waiting", () => setPlayerLoading(true, "バッファリング中…"));
+    $("#player").addEventListener("stalled", () => setPlayerLoading(true, "接続を待っています…"));
+    $("#player").addEventListener("loadeddata", () => setPlayerLoading(false));
+    $("#player").addEventListener("canplay", () => setPlayerLoading(false));
+    $("#player").addEventListener("playing", () => {
+      setPlayerLoading(false);
+      const audio = $("#audioPlayer");
+      if (audio.src) {
+        syncAudioToVideo();
+        audio.play().catch(() => {});
+      }
+    });
+    $("#player").addEventListener("error", () => setPlayerLoading(false));
+    $("#player").addEventListener("play", () => {
+      const audio = $("#audioPlayer");
+      if (!audio.src) return;
+      syncAudioToVideo();
+      audio.play().catch(() => {});
+    });
+    $("#player").addEventListener("pause", () => $("#audioPlayer").pause());
+    $("#player").addEventListener("waiting", () => $("#audioPlayer").pause());
+    $("#player").addEventListener("seeking", syncAudioToVideo);
+    $("#player").addEventListener("seeked", syncAudioToVideo);
+    $("#player").addEventListener("timeupdate", syncAudioToVideo);
+    $("#player").addEventListener("ratechange", () => {
+      $("#audioPlayer").playbackRate = $("#player").playbackRate;
+    });
+    $("#player").addEventListener("volumechange", () => {
+      $("#audioPlayer").volume = $("#player").volume;
+      $("#audioPlayer").muted = $("#player").muted;
+    });
+    $("#player").addEventListener("ended", () => {
+      const audio = $("#audioPlayer");
+      audio.pause();
+      audio.currentTime = 0;
+    });
+    $("#audioPlayer").addEventListener("loadedmetadata", syncAudioToVideo);
+    $("#audioPlayer").addEventListener("canplay", () => {
+      syncAudioToVideo();
+      if (!$("#player").paused && !$("#player").ended) $("#audioPlayer").play().catch(() => {});
+    });
+    $("#settingsButton").addEventListener("click", () => {
+      applySettings(readSettings());
+      $("#settingsBackdrop").classList.remove("hidden");
+    });
+    $("#closeSettingsButton").addEventListener("click", () => $("#settingsBackdrop").classList.add("hidden"));
+    $("#settingsBackdrop").addEventListener("click", (event) => {
+      if (event.target === $("#settingsBackdrop")) $("#settingsBackdrop").classList.add("hidden");
+    });
+    $("#closePlaylistPickerButton").addEventListener("click", closePlaylistPicker);
+    $("#playlistPickerBackdrop").addEventListener("click", (event) => {
+      if (event.target === $("#playlistPickerBackdrop")) closePlaylistPicker();
+    });
+    $("#playlistBackButton").addEventListener("click", loadPlaylists);
+    $("#exportPlaylistsButton").addEventListener("click", exportPlaylists);
+    $("#importPlaylistsInput").addEventListener("change", (event) => importPlaylists(event.target.files?.[0]));
+    $("#playlistForm").addEventListener("submit", (event) => {
+      event.preventDefault();
+      const name = $("#playlistNameInput").value;
+      if (!createPlaylist(name)) return;
+      $("#playlistNameInput").value = "";
+      loadPlaylists();
+      showToast("再生リストを作成しました");
+    });
+    $("#quickPlaylistForm").addEventListener("submit", (event) => {
+      event.preventDefault();
+      const list = createPlaylist($("#quickPlaylistNameInput").value, state.currentVideo);
+      if (!list) return;
+      $("#quickPlaylistNameInput").value = "";
+      closePlaylistPicker();
+      showToast(`「${list.name}」を作成して追加しました`);
+    });
+    $("#tabPreset").addEventListener("change", () => {
+      const preset = TAB_PRESETS[$("#tabPreset").value];
+      if (!preset) return;
+      $("#customTabTitle").value = preset.title;
+      $("#customFaviconUrl").value = preset.favicon;
+    });
+    $("#saveSettingsButton").addEventListener("click", saveSettings);
+    $("#resetSettingsButton").addEventListener("click", () => {
+      $("#darkModeToggle").checked = false;
+      $("#personalizedRecommendationsToggle").checked = false;
+      $("#tabPreset").value = "classroom";
+      $("#customTabTitle").value = TAB_PRESETS.classroom.title;
+      $("#customFaviconUrl").value = TAB_PRESETS.classroom.favicon;
+      saveSettings();
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        $("#settingsBackdrop").classList.add("hidden");
+        closePlaylistPicker();
+      }
+    });
+    window.addEventListener("pagehide", stopPlayback);
+    document.querySelectorAll(".nav-item[data-route]").forEach((item) => item.addEventListener("click", () => {
+      document.querySelectorAll(".nav-item").forEach((nav) => nav.classList.remove("active"));
+      item.classList.add("active");
+      const route = item.dataset.route;
+      if (route === "history") return loadHistory();
+      if (route === "playlists") return loadPlaylists();
+      if (route === "trending") return loadHome("trending?region=JP", "急上昇");
+      if (route === "news") return loadNews();
+      if (route === "subscriptions") return loadSubscriptions();
+      return loadHome();
+    }));
+    window.addEventListener("popstate", routeFromHash);
+    window.addEventListener("hashchange", routeFromHash);
+    applySettings(readSettings());
+    state.subscriptions = readSubscriptions();
+    state.playlists = readPlaylists();
+    routeFromHash();
+  </script>
 </body>
 </html>
