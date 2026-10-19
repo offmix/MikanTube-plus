@@ -629,6 +629,20 @@
       border-radius: 10px;
       font-size: 13px;
     }
+    .comments-section { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line); }
+    .comments-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .comments-header h2 { margin: 0; font-size: 18px; }
+    .comments-status { margin: 14px 0 0; color: var(--muted); font-size: 13px; }
+    .comments-list { display: grid; gap: 18px; margin-top: 16px; }
+    .comment-item { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 12px; }
+    .comment-avatar { width: 40px; height: 40px; display: grid; place-items: center; overflow: hidden; border-radius: 50%; background: var(--surface-2); color: var(--muted); font-weight: 700; }
+    .comment-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .comment-body { min-width: 0; }
+    .comment-meta { display: flex; flex-wrap: wrap; align-items: baseline; gap: 7px; color: var(--muted); font-size: 12px; }
+    .comment-meta strong { color: var(--text); font-size: 13px; }
+    .comment-pinned { padding: 2px 7px; border-radius: 10px; background: var(--surface-2); font-size: 11px; }
+    .comment-content { margin: 5px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 13px; }
+    .comments-more-button { margin-top: 18px; }
     .side-title { margin: 0 0 14px; font-size: 17px; }
     .side-list { display: grid; gap: 14px; }
     .side-list.playlist-side { gap: 5px; }
@@ -1081,6 +1095,12 @@
                 </div>
               </div>
               <div class="description" id="watchDescription"></div>
+              <section class="comments-section" id="commentsSection" aria-labelledby="commentsHeading">
+                <div class="comments-header"><h2 id="commentsHeading">コメント</h2></div>
+                <p class="comments-status" id="commentsStatus" role="status" aria-live="polite">動画を選ぶとコメントを取得します。</p>
+                <div class="comments-list" id="commentsList"></div>
+                <button class="load-more-button comments-more-button hidden" id="commentsMoreButton" type="button">さらにコメントを読み込む</button>
+              </section>
             </div>
             <aside>
                <h2 class="side-title" id="sideTitle">次の動画</h2>
@@ -1207,7 +1227,10 @@
       "https://invidious.private.coffee",
       "https://iv.melmac.space",
 　　  "https://yt.artemislena.eu",
-　　　"https://y.com.sb"
+　　　"https://y.com.sb",
+      "https://video.zeniro.top",
+      "https://fast-v6.omada.cafe",
+      "https://invidious.moomoo.me"
     ];
     const HEALTH_KEY = "mikan-tube-instance-health";
     const HISTORY_KEY = "mikan-tube-history";
@@ -1252,7 +1275,9 @@
       nextItems: [],
       watchPlaylistId: null,
       abortController: null,
-      playbackGeneration: 0
+      playbackGeneration: 0,
+      commentsGeneration: 0,
+      commentContinuation: ""
     };
 
     const $ = (selector) => document.querySelector(selector);
@@ -2703,6 +2728,61 @@
       }
     }
 
+    function renderComment(comment) {
+      const author = String(comment?.author || "匿名");
+      const thumbnails = Array.isArray(comment?.authorThumbnails) ? comment.authorThumbnails : [];
+      const avatarCandidate = thumbnails.find((image) => image?.url)?.url || "";
+      const avatarUrl = /^https:/i.test(avatarCandidate) ? avatarCandidate : "";
+      const content = stripHtml(comment?.contentHtml || comment?.content || "");
+      const meta = [
+        comment?.publishedText,
+        Number(comment?.likeCount) > 0 ? "👍 " + formatCount(comment.likeCount) : "",
+        Number(comment?.replyCount) > 0 ? "返信 " + formatCount(comment.replyCount) + "件" : ""
+      ].filter(Boolean).map(escapeHtml).join(" · ");
+      const avatar = avatarUrl
+        ? '<img src="' + escapeHtml(avatarUrl) + '" loading="lazy" referrerpolicy="no-referrer" alt="">'
+        : escapeHtml(author.slice(0, 1) || "?");
+      const pinned = comment?.isPinned ? '<span class="comment-pinned">固定コメント</span>' : "";
+      return '<article class="comment-item"><div class="comment-avatar">' + avatar + '</div><div class="comment-body"><div class="comment-meta"><strong>' + escapeHtml(author) + '</strong>' + (meta ? '<span>' + meta + '</span>' : "") + pinned + '</div><p class="comment-content">' + escapeHtml(content) + '</p></div></article>';
+    }
+
+    async function loadComments(videoId, continuation = "", append = false) {
+      const requestId = ++state.commentsGeneration;
+      const list = $("#commentsList");
+      const status = $("#commentsStatus");
+      const button = $("#commentsMoreButton");
+      if (!append) {
+        state.commentContinuation = "";
+        list.innerHTML = "";
+        status.textContent = "コメントを読み込み中…";
+        status.hidden = false;
+        button.classList.add("hidden");
+      }
+      button.disabled = true;
+      button.textContent = "読み込み中…";
+      try {
+        const query = continuation ? "?continuation=" + encodeURIComponent(continuation) : "";
+        const data = await api("comments/" + encodeURIComponent(videoId) + query);
+        if (requestId !== state.commentsGeneration || state.route !== "watch" || state.currentVideo?.videoId !== videoId) return;
+        const comments = Array.isArray(data) ? data : (Array.isArray(data?.comments) ? data.comments : []);
+        const nextContinuation = typeof data?.continuation === "string" ? data.continuation : "";
+        if (comments.length) list.insertAdjacentHTML("beforeend", comments.map(renderComment).join(""));
+        state.commentContinuation = nextContinuation;
+        status.textContent = comments.length || append ? "" : "この動画にはコメントがありません。";
+        status.hidden = Boolean(comments.length || append);
+        button.classList.toggle("hidden", !nextContinuation);
+        button.textContent = "さらにコメントを読み込む";
+      } catch (error) {
+        if (error.name === "AbortError" || requestId !== state.commentsGeneration) return;
+        status.textContent = append ? "追加のコメントを取得できませんでした。" : "コメントを取得できませんでした。";
+        status.hidden = false;
+        button.classList.toggle("hidden", !append || !state.commentContinuation);
+        button.textContent = append ? "再試行" : "さらにコメントを読み込む";
+      } finally {
+        if (requestId === state.commentsGeneration) button.disabled = false;
+      }
+    }
+
     async function openVideo(videoId, playlistId = "") {
       stopPlayback();
       state.route = "watch";
@@ -2717,6 +2797,18 @@
       $("#watchAuthor").textContent = "";
       $("#watchStats").textContent = "";
       $("#watchDescription").textContent = "";
+      state.commentsGeneration += 1;
+      state.commentContinuation = "";
+      $("#commentsList").innerHTML = "";
+      $("#commentsStatus").textContent = "コメントを読み込み中…";
+      $("#commentsStatus").hidden = false;
+      $("#commentsMoreButton").classList.add("hidden");
+      $("#commentsMoreButton").disabled = false;
+      $("#commentsMoreButton").onclick = () => {
+        if (state.currentVideo?.videoId && state.commentContinuation) {
+          loadComments(state.currentVideo.videoId, state.commentContinuation, true);
+        }
+      };
       state.currentVideo = null;
       $("#player").pause();
       $("#qualitySelect").innerHTML = "<option>読み込み中…</option>";
@@ -2766,10 +2858,13 @@
         $("#downloadButton").disabled = !state.downloadStream;
         await prepareNextVideos(raw, videoId);
         if (state.watchPlaylistId) renderSidePanel();
+        loadComments(videoId);
       } catch (error) {
         setPlayerLoading(false);
         $("#watchTitle").textContent = "動画を再生できません";
         $("#watchDescription").textContent = "この動画の再生URLを取得できませんでした。別の動画をお試しください。";
+        $("#commentsStatus").textContent = "動画を取得できないため、コメントを表示できません。";
+        $("#commentsStatus").hidden = false;
         showToast("動画の取得に失敗しました");
       }
     }
