@@ -22,7 +22,7 @@ HTML一枚で動く軽量で本家YouTubeに匹敵する機能を目指してい
  - [html.cafe版](https://html.cafe/xa9e50f42)
  - [GAS版](https://script.google.com/macros/s/AKfycbx90qdu-36kfACwy85YHqgJMq0HVhgpZDXxtRbbLoQdRbxyAGNVoluvwiBEB06DqUsT/exec
 )
-  - 【RECJ公認】登録番号:A0007
+  - 【RECJ公認】登録番号:A0005
  ---
 
 © 2026 みかんTube+ Contributors / みかんTube+™  
