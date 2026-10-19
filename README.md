@@ -1,6 +1,6 @@
 # みかんTube+
 ## 概要
-みかんTube+はInvidiousを使用したYouTubeを広告無しでより快適に動画視聴をするためのプロジェクトです。  
+みかんTube+はRECJ公認のInvidiousを使用したYouTubeを広告無しでより快適に動画視聴をするためのプロジェクトです。  
 HTML一枚で動く軽量で本家YouTubeに匹敵する機能を目指しています。
 ## 特徴
 * ホスティングのしやすさ:Renderの静的サイトでのデプロイに対応。
@@ -9,7 +9,7 @@ HTML一枚で動く軽量で本家YouTubeに匹敵する機能を目指してい
 * タブ偽装:Google ClassroomやGoogle検索のタブに偽装できます。また、カスタムにも対応。
 * 高度なおすすめ機能:視聴履歴や検索語句からおすすめを表示する設定項目を用意。
 ## 更新履歴
-### v1.1.0
+### v1.0.1
  - 再生リスト機能の追加
  - ニュース機能の追加
 
@@ -22,7 +22,7 @@ HTML一枚で動く軽量で本家YouTubeに匹敵する機能を目指してい
  - [html.cafe版](https://html.cafe/xa9e50f42)
  - [GAS版](https://script.google.com/macros/s/AKfycbx90qdu-36kfACwy85YHqgJMq0HVhgpZDXxtRbbLoQdRbxyAGNVoluvwiBEB06DqUsT/exec
 )
-
+  - 【RECJ公認】登録番号:A0007
  ---
 
 © 2026 みかんTube+ Contributors / みかんTube+™  
