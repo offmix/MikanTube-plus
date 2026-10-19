@@ -1210,6 +1210,8 @@
      * インスタンスは画面に公開せず、リクエストごとに自動で健全性を判定します。
      * f5.si と ducks.party を先頭に含め、応答したインスタンスを次回優先します。
      */
+    // Existing instances are kept first; this list also includes every unique
+    // Invidious API instance from the supplied K-Tube v18 snapshot.
     const INSTANCES = [
       "https://invidious.ritoge.com",
       "https://invidious.f5.si",
@@ -1226,12 +1228,73 @@
       "https://yewtu.be",
       "https://invidious.private.coffee",
       "https://iv.melmac.space",
-　　  "https://yt.artemislena.eu",
-　　　"https://y.com.sb",
+      "https://yt.artemislena.eu",
+      "https://y.com.sb",
       "https://video.zeniro.top",
       "https://fast-v6.omada.cafe",
-      "https://invidious.moomoo.me"
+      "https://invidious.moomoo.me",
+      "https://invidious.slipfox.xyz",
+      "https://invidious.protokolla.fi",
+      "https://inv.tux.pizza",
+      "https://invidious.lunar.icu",
+      "https://invidious.no-logs.com",
+      "https://invidious.zapashcanon.fr",
+      "https://invidious.dhusch.de",
+      "https://invidious.reallyaweso.me",
+      "https://invidious.kavin.rocks",
+      "https://vid.puffyan.us",
+      "https://invidious.snopyta.org",
+      "https://invidious.xyz",
+      "https://inv.zzls.xyz",
+      "https://invidious.fdn.fr",
+      "https://invidious.flokinet.to",
+      "https://inv.zoomerville.com",
+      "https://invidious.schenkel.eti.br",
+      "https://cal1.iv.ggtyler.dev",
+      "https://eu-proxy.poketube.fun",
+      "https://id.420129.xyz",
+      "https://inv1-nadeko-net.zproxy.org",
+      "https://inv2-nadeko-net.zproxy.org",
+      "https://inv3-nadeko-net.zproxy.org",
+      "https://inv4-nadeko-net.zproxy.org",
+      "https://invid-api.poketube.fun",
+      "https://invidious-f5-si.zproxy.org",
+      "https://invidious.0011.lt",
+      "https://invidious.adminforge.de",
+      "https://invidious.darkness.services",
+      "https://invidious.einfachzocken.eu",
+      "https://invidious.esmailelbob.xyz",
+      "https://invidious.lunivers.trade",
+      "https://invidious.nikkosphere.com",
+      "https://invidious.projectsegfau.lt",
+      "https://inv.thepixora.com",
+      "https://iv.datura.network",
+      "https://iv.duti.dev",
+      "https://lekker.gay",
+      "https://nyc1.iv.ggtyler.dev",
+      "https://pol1.iv.ggtyler.dev",
+      "https://super8.absturztau.be",
+      "https://usa-proxy2.poketube.fun",
+      "https://youtube.mosesmang.com",
+      "https://inv.kamuridesu.com",
+      "https://iv.catgirl.cloud",
+      "https://inv.riverside.rocks"
     ];
+    // Piped uses a different API contract, so these stay in a separate pool.
+    const PIPED_INSTANCES = [
+      "https://pipedapi.in.projectsegfau.lt",
+      "https://pipedapi.us.projectsegfau.lt",
+      "https://pipedapi.eu.projectsegfau.lt",
+      "https://pipedapi.jp.projectsegfau.lt",
+      "https://pipedapi.adminforge.de",
+      "https://pipedapi.garudalinux.org",
+      "https://pipedapi.ethibox.fr",
+      "https://pipedapi.nerdvpn.de",
+      "https://piped-api.r4fo.com",
+      "https://pipedapi.phoenixcollective.net"
+    ];
+    const PIPED_SEARCH_PAGES = new Map();
+    const PIPED_COMMENT_PAGES = new Map();
     const HEALTH_KEY = "mikan-tube-instance-health";
     const HISTORY_KEY = "mikan-tube-history";
     const SEARCH_HISTORY_KEY = "mikan-tube-search-history";
@@ -1384,6 +1447,200 @@
       return (Array.isArray(items) ? items : []).filter((item) => !isLive(item));
     }
 
+    function getPipedHealthOrder(preferredInstance = "") {
+      try {
+        const health = JSON.parse(localStorage.getItem(HEALTH_KEY) || "{}");
+        const instances = [...PIPED_INSTANCES].sort((a, b) => (health[b] || 0) - (health[a] || 0));
+        if (preferredInstance && instances.includes(preferredInstance)) {
+          return [preferredInstance, ...instances.filter((instance) => instance !== preferredInstance)];
+        }
+        return instances;
+      } catch (_) {
+        return preferredInstance && PIPED_INSTANCES.includes(preferredInstance)
+          ? [preferredInstance, ...PIPED_INSTANCES.filter((instance) => instance !== preferredInstance)]
+          : [...PIPED_INSTANCES];
+      }
+    }
+
+    function pipedVideoId(item) {
+      const value = String(item?.url || item?.videoId || item?.id || "");
+      try {
+        const parsed = new URL(value, "https://www.youtube.com");
+        const queryId = parsed.searchParams.get("v");
+        if (queryId) return queryId;
+        return parsed.pathname.match(/\/([a-zA-Z0-9_-]{11})(?:\/|$)/)?.[1] || "";
+      } catch (_) {
+        return /^[a-zA-Z0-9_-]{11}$/.test(value) ? value : "";
+      }
+    }
+
+    function normalizePipedItem(item) {
+      const videoId = pipedVideoId(item);
+      if (!videoId) return null;
+      const authorUrl = String(item.uploaderUrl || item.authorUrl || "");
+      const authorId = authorUrl.match(/\/channel\/([^/?#]+)/i)?.[1] || item.authorId || "";
+      const thumbnail = item.thumbnail || item.thumbnailUrl || "";
+      const authorThumbnail = item.uploaderAvatar || item.authorThumbnail || "";
+      return {
+        videoId,
+        title: item.title || "タイトルなし",
+        author: item.uploaderName || item.uploader || item.author || "チャンネル不明",
+        authorId,
+        authorUrl,
+        authorThumbnails: authorThumbnail ? [{ url: authorThumbnail }] : [],
+        type: "video",
+        viewCount: Number(item.views ?? item.viewCount ?? 0),
+        publishedText: item.uploadedDate || item.publishedText || "",
+        published: item.uploaded ?? item.uploadDate ?? item.published ?? null,
+        lengthSeconds: Number(item.duration ?? item.lengthSeconds ?? 0),
+        videoThumbnails: thumbnail ? [{ quality: "medium", url: thumbnail }] : [],
+        description: item.shortDescription || item.description || "",
+        liveNow: item.livestream === true || item.liveNow === true
+      };
+    }
+
+    function normalizePipedVideo(video, videoId) {
+      const toFormat = (stream, kind) => {
+        if (!stream?.url) return null;
+        const format = String(stream.format || "").replace(/^MPEG_4$/i, "mp4").toLowerCase();
+        const fallbackType = kind === "audio" ? "audio/mp4" : "video/mp4";
+        return {
+          url: stream.url,
+          type: stream.mimeType || fallbackType,
+          quality: stream.quality || "",
+          qualityLabel: stream.quality || "",
+          resolution: stream.height ? `${stream.width || ""}x${stream.height}` : "",
+          container: format,
+          bitrate: Number(stream.bitrate || 0)
+        };
+      };
+      const videoStreams = Array.isArray(video.videoStreams) ? video.videoStreams : [];
+      const audioStreams = Array.isArray(video.audioStreams) ? video.audioStreams : [];
+      const formatStreams = videoStreams
+        .filter((stream) => stream.videoOnly !== true)
+        .map((stream) => toFormat(stream, "video"))
+        .filter(Boolean);
+      const adaptiveFormats = [
+        ...videoStreams.filter((stream) => stream.videoOnly === true).map((stream) => toFormat(stream, "video")),
+        ...audioStreams.map((stream) => toFormat(stream, "audio"))
+      ].filter(Boolean);
+      if (!formatStreams.length && !adaptiveFormats.some((stream) => stream.type.startsWith("video/"))) {
+        throw new Error("Pipedから再生可能な動画ストリームが返りませんでした");
+      }
+      const item = normalizePipedItem({
+        videoId,
+        url: `/watch?v=${encodeURIComponent(videoId)}`,
+        title: video.title,
+        uploaderName: video.uploader,
+        uploaderUrl: video.uploaderUrl,
+        uploaderAvatar: video.uploaderAvatar,
+        thumbnail: video.thumbnailUrl,
+        views: video.views,
+        uploadedDate: video.uploadDate,
+        duration: video.duration,
+        description: video.description,
+        livestream: video.livestream
+      });
+      return {
+        ...video,
+        ...item,
+        formatStreams,
+        adaptiveFormats,
+        relatedStreams: (Array.isArray(video.relatedStreams) ? video.relatedStreams : [])
+          .map(normalizePipedItem).filter(Boolean)
+      };
+    }
+
+    function pipedRequestSpec(path) {
+      try {
+        const requestUrl = new URL(path, "https://mikan-tube.invalid");
+        const route = requestUrl.pathname.replace(/^\/+|\/+$/g, "");
+        const params = requestUrl.searchParams;
+        if (route === "trending" && Number(params.get("page") || 1) <= 1) {
+          return {
+            kind: "trending",
+            endpoint: `/trending?region=${encodeURIComponent(params.get("region") || "JP")}`
+          };
+        }
+        if (route === "search") {
+          const query = params.get("q") || "";
+          if (!query) return null;
+          const page = Math.max(1, Number(params.get("page") || 1));
+          const key = query;
+          if (page > 1) {
+            const previous = PIPED_SEARCH_PAGES.get(key);
+            if (!previous?.nextpage) return null;
+            const nextParams = new URLSearchParams({
+              nextpage: previous.nextpage,
+              q: query,
+              filter: "videos"
+            });
+            return {
+              kind: "search",
+              key,
+              endpoint: `/nextpage/search?${nextParams}`,
+              preferredInstance: previous.instance
+            };
+          }
+          const searchParams = new URLSearchParams({ q: query, filter: "videos" });
+          return { kind: "search", key, endpoint: `/search?${searchParams}` };
+        }
+        const videoMatch = route.match(/^videos\/([^/]+)$/);
+        if (videoMatch) {
+          const videoId = decodeURIComponent(videoMatch[1]);
+          return { kind: "video", videoId, endpoint: `/streams/${encodeURIComponent(videoId)}` };
+        }
+        const commentsMatch = route.match(/^comments\/([^/]+)$/);
+        if (commentsMatch) {
+          const videoId = decodeURIComponent(commentsMatch[1]);
+          const continuation = params.get("continuation") || "";
+          if (continuation) {
+            const previous = PIPED_COMMENT_PAGES.get(videoId);
+            if (!previous?.nextpage) return null;
+            const nextParams = new URLSearchParams({ nextpage: previous.nextpage });
+            return {
+              kind: "comments",
+              videoId,
+              endpoint: `/nextpage/comments/${encodeURIComponent(videoId)}?${nextParams}`,
+              preferredInstance: previous.instance
+            };
+          }
+          return { kind: "comments", videoId, endpoint: `/comments/${encodeURIComponent(videoId)}` };
+        }
+      } catch (_) {}
+      return null;
+    }
+
+    function normalizePipedResponse(data, spec) {
+      if (spec.kind === "trending") {
+        if (!Array.isArray(data)) throw new Error("Piped trending APIの応答形式が不正です");
+        return data.map(normalizePipedItem).filter(Boolean);
+      }
+      if (spec.kind === "search") {
+        const items = Array.isArray(data?.items) ? data.items : [];
+        const videos = items
+          .filter((item) => !item.type || item.type === "stream")
+          .map(normalizePipedItem).filter(Boolean);
+        return { videos, items: videos, continuation: data?.nextpage || "" };
+      }
+      if (spec.kind === "video") {
+        return normalizePipedVideo(data, spec.videoId);
+      }
+      if (spec.kind === "comments") {
+        const comments = Array.isArray(data?.comments) ? data.comments.map((comment) => ({
+          author: comment.author || "匿名",
+          authorThumbnail: comment.thumbnail || "",
+          content: comment.commentText || "",
+          publishedText: comment.commentedTime || "",
+          likeCount: Number(comment.likeCount || 0),
+          isPinned: comment.pinned === true,
+          replies: { replyCount: Number(comment.replyCount || 0) }
+        })) : [];
+        return { comments, continuation: data?.nextpage || "" };
+      }
+      throw new Error("未対応のPiped APIです");
+    }
+
     function requestInstance(instance, path, parentSignal) {
       const controller = new AbortController();
       const task = { instance, cancelled: false, cancel: () => {} };
@@ -1419,6 +1676,77 @@
       return task;
     }
 
+    function requestPipedInstance(instance, spec, parentSignal) {
+      const controller = new AbortController();
+      const task = { instance, cancelled: false, cancel: () => {} };
+      let timedOut = false;
+      const onAbort = () => controller.abort();
+      const timeout = setTimeout(() => {
+        timedOut = true;
+        controller.abort();
+      }, 4500);
+      parentSignal.addEventListener("abort", onAbort, { once: true });
+      task.cancel = () => {
+        task.cancelled = true;
+        controller.abort();
+      };
+      task.promise = fetch(`${instance}${spec.endpoint}`, {
+        signal: controller.signal,
+        headers: { "Accept": "application/json" }
+      }).then(async (response) => {
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        if (data?.error) throw new Error(String(data.message || data.error));
+        return { instance, data: normalizePipedResponse(data, spec), nextpage: data?.nextpage || "" };
+      }).catch((error) => {
+        if (timedOut && !parentSignal.aborted) throw new Error("タイムアウト");
+        throw error;
+      }).finally(() => {
+        clearTimeout(timeout);
+        parentSignal.removeEventListener("abort", onAbort);
+      });
+      task.promise.catch((error) => {
+        if (!parentSignal.aborted && !task.cancelled && error.name !== "AbortError") markInstanceFailed(instance);
+      });
+      return task;
+    }
+
+    async function fetchFromPiped(path, parentSignal) {
+      const spec = pipedRequestSpec(path);
+      if (!spec) return null;
+      const errors = [];
+      const instances = getPipedHealthOrder(spec.preferredInstance);
+      setStatus("busy", "Piped APIへ切替中");
+      for (let offset = 0; offset < instances.length; offset += 4) {
+        const tasks = instances.slice(offset, offset + 4)
+          .map((instance) => requestPipedInstance(instance, spec, parentSignal));
+        try {
+          const result = await Promise.any(tasks.map((task) => task.promise));
+          tasks.forEach((task) => {
+            if (task.instance !== result.instance) task.cancel();
+          });
+          rememberInstance(result.instance);
+          if (spec.kind === "search") {
+            if (result.nextpage) PIPED_SEARCH_PAGES.set(spec.key, { nextpage: result.nextpage, instance: result.instance });
+            else PIPED_SEARCH_PAGES.delete(spec.key);
+          } else if (spec.kind === "comments") {
+            if (result.nextpage) PIPED_COMMENT_PAGES.set(spec.videoId, { nextpage: result.nextpage, instance: result.instance });
+            else PIPED_COMMENT_PAGES.delete(spec.videoId);
+          }
+          return result;
+        } catch (error) {
+          if (parentSignal.aborted) {
+            const aborted = new Error("操作を中断しました");
+            aborted.name = "AbortError";
+            throw aborted;
+          }
+          const reasons = error.errors || [error];
+          errors.push(...reasons.map((reason) => reason.message).filter(Boolean));
+        }
+      }
+      throw new Error(errors.slice(0, 4).join(" / ") || "Pipedインスタンスが応答しません");
+    }
+
     async function api(path) {
       if (state.abortController) state.abortController.abort();
       state.abortController = new AbortController();
@@ -1445,6 +1773,20 @@
           const reasons = error.errors || [error];
           errors.push(...reasons.map((reason) => reason.message).filter(Boolean));
         }
+      }
+      try {
+        const pipedResult = await fetchFromPiped(path, state.abortController.signal);
+        if (pipedResult) {
+          setStatus("", "Piped APIへ自動接続");
+          return pipedResult.data;
+        }
+      } catch (error) {
+        if (state.abortController.signal.aborted) {
+          const aborted = new Error("操作を中断しました");
+          aborted.name = "AbortError";
+          throw aborted;
+        }
+        errors.push(`Piped: ${error.message}`);
       }
       setStatus("error", "接続できません");
       throw new Error(errors.slice(0, 4).join(" / ") || "接続先が見つかりません");
