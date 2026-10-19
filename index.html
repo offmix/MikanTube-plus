@@ -1336,9 +1336,15 @@
       channelSort: "latest",
       currentVideo: null,
       currentStreams: [],
+      currentPlaybackCandidates: [],
       currentStream: null,
       currentAudioStream: null,
       downloadStream: null,
+      playbackRetry: null,
+      lastApiProvider: null,
+      playbackRequested: false,
+      playbackWatchdog: null,
+      playbackStallWatchdog: null,
       nextItems: [],
       watchPlaylistId: null,
       abortController: null,
@@ -1662,6 +1668,13 @@
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
         if (data?.error) throw new Error(String(data.error));
+        if (/^videos\/[^/?]+(?:\?|$)/.test(path)) {
+          const formatStreams = Array.isArray(data?.formatStreams) ? data.formatStreams : [];
+          const adaptiveFormats = Array.isArray(data?.adaptiveFormats) ? data.adaptiveFormats : [];
+          const hasVideo = formatStreams.some((stream) => stream?.url)
+            || adaptiveFormats.some((stream) => stream?.url && /^video\//i.test(String(stream.type || "")));
+          if (!hasVideo) throw new Error("再生可能な動画ストリームがありません");
+        }
         return { instance, data };
       }).catch((error) => {
         if (timedOut && !parentSignal.aborted) throw new Error("タイムアウト");
@@ -1711,11 +1724,12 @@
       return task;
     }
 
-    async function fetchFromPiped(path, parentSignal) {
+    async function fetchFromPiped(path, parentSignal, excludedProviders = new Set()) {
       const spec = pipedRequestSpec(path);
       if (!spec) return null;
       const errors = [];
-      const instances = getPipedHealthOrder(spec.preferredInstance);
+      const instances = getPipedHealthOrder(spec.preferredInstance)
+        .filter((instance) => !excludedProviders.has(`piped:${instance}`));
       setStatus("busy", "Piped APIへ切替中");
       for (let offset = 0; offset < instances.length; offset += 4) {
         const tasks = instances.slice(offset, offset + 4)
@@ -1747,12 +1761,38 @@
       throw new Error(errors.slice(0, 4).join(" / ") || "Pipedインスタンスが応答しません");
     }
 
-    async function api(path) {
+    async function api(path, options = {}) {
       if (state.abortController) state.abortController.abort();
       state.abortController = new AbortController();
       const errors = [];
-      const instances = getHealthOrder();
+      const excludedProviders = options.excludedProviders instanceof Set ? options.excludedProviders : new Set();
+      state.lastApiProvider = null;
       setStatus("busy", "接続中");
+      const tryPiped = async () => {
+        try {
+          const result = await fetchFromPiped(path, state.abortController.signal, excludedProviders);
+          if (!result) return null;
+          state.lastApiProvider = { kind: "piped", instance: result.instance };
+          return result;
+        } catch (error) {
+          if (state.abortController.signal.aborted) {
+            const aborted = new Error("操作を中断しました");
+            aborted.name = "AbortError";
+            throw aborted;
+          }
+          errors.push(`Piped: ${error.message}`);
+          return null;
+        }
+      };
+      if (options.preferPiped) {
+        const pipedResult = await tryPiped();
+        if (pipedResult) {
+          setStatus("", "Piped APIへ自動接続");
+          return pipedResult.data;
+        }
+      }
+      const instances = getHealthOrder()
+        .filter((instance) => !excludedProviders.has(`invidious:${instance}`));
       for (let offset = 0; offset < instances.length; offset += 4) {
         const tasks = instances.slice(offset, offset + 4)
           .map((instance) => requestInstance(instance, path, state.abortController.signal));
@@ -1762,6 +1802,7 @@
             if (task.instance !== result.instance) task.cancel();
           });
           rememberInstance(result.instance);
+          state.lastApiProvider = { kind: "invidious", instance: result.instance };
           setStatus("", "自動接続");
           return result.data;
         } catch (error) {
@@ -1774,19 +1815,12 @@
           errors.push(...reasons.map((reason) => reason.message).filter(Boolean));
         }
       }
-      try {
-        const pipedResult = await fetchFromPiped(path, state.abortController.signal);
+      if (!options.preferPiped) {
+        const pipedResult = await tryPiped();
         if (pipedResult) {
           setStatus("", "Piped APIへ自動接続");
           return pipedResult.data;
         }
-      } catch (error) {
-        if (state.abortController.signal.aborted) {
-          const aborted = new Error("操作を中断しました");
-          aborted.name = "AbortError";
-          throw aborted;
-        }
-        errors.push(`Piped: ${error.message}`);
       }
       setStatus("error", "接続できません");
       throw new Error(errors.slice(0, 4).join(" / ") || "接続先が見つかりません");
@@ -2916,9 +2950,17 @@
       }
       state.currentVideo = null;
       state.currentStreams = [];
+      state.currentPlaybackCandidates = [];
       state.currentStream = null;
       state.currentAudioStream = null;
       state.downloadStream = null;
+      state.playbackRetry = null;
+      state.lastApiProvider = null;
+      state.playbackRequested = false;
+      clearTimeout(state.playbackWatchdog);
+      clearTimeout(state.playbackStallWatchdog);
+      state.playbackWatchdog = null;
+      state.playbackStallWatchdog = null;
       setPlayerLoading(false);
     }
 
@@ -2929,6 +2971,38 @@
       loading.classList.toggle("hidden", !isLoading);
       $("#playerLoadingText").textContent = message;
       player.setAttribute("aria-busy", String(isLoading));
+    }
+
+    function clearPlaybackWatchdogs() {
+      clearTimeout(state.playbackWatchdog);
+      clearTimeout(state.playbackStallWatchdog);
+      state.playbackWatchdog = null;
+      state.playbackStallWatchdog = null;
+    }
+
+    function armPlaybackWatchdog() {
+      clearTimeout(state.playbackWatchdog);
+      const player = $("#player");
+      const generation = state.playbackGeneration;
+      state.playbackWatchdog = setTimeout(() => {
+        state.playbackWatchdog = null;
+        if (generation === state.playbackGeneration && state.playbackRequested && player.readyState < 2) {
+          retryPlaybackFromFallback();
+        }
+      }, 15000);
+    }
+
+    function armPlaybackStallWatchdog() {
+      clearTimeout(state.playbackStallWatchdog);
+      if (!state.playbackRequested) return;
+      const player = $("#player");
+      const generation = state.playbackGeneration;
+      state.playbackStallWatchdog = setTimeout(() => {
+        state.playbackStallWatchdog = null;
+        if (generation === state.playbackGeneration && state.playbackRequested && player.readyState < 3) {
+          retryPlaybackFromFallback();
+        }
+      }, 15000);
     }
 
     function streamQuality(stream) {
@@ -2950,7 +3024,7 @@
       return Number(streamQuality(stream).match(/\d+/)?.[0] || 0);
     }
 
-    function getQualityStreams(video) {
+    function getQualityStreams(video, preserveSameQuality = false) {
       const probe = document.createElement("video");
       const supports = (stream) => {
         const type = String(stream.type || "").trim();
@@ -2973,6 +3047,14 @@
           || qualityNumber(b) - qualityNumber(a)
           || Number(b._progressive) - Number(a._progressive)
           || (Number(b.bitrate) || 0) - (Number(a.bitrate) || 0));
+      if (preserveSameQuality) {
+        const seenUrls = new Set();
+        return streams.filter((stream) => {
+          if (seenUrls.has(stream.url)) return false;
+          seenUrls.add(stream.url);
+          return true;
+        });
+      }
       const seen = new Set();
       return streams.filter((stream) => {
         const quality = streamQuality(stream);
@@ -3047,13 +3129,15 @@
         : baseRate;
     }
 
-    function setPlayerStream(stream, preservePosition = false) {
+    function setPlayerStream(stream, preservePosition = false, forceResume = false) {
       const player = $("#player");
       const audio = $("#audioPlayer");
       const generation = ++state.playbackGeneration;
-      const wasPlaying = !player.paused && !player.ended;
+      const wasPlaying = forceResume || (!player.paused && !player.ended);
       const currentTime = preservePosition ? player.currentTime : 0;
       state.currentStream = stream;
+      if (stream?.url && state.playbackRetry) state.playbackRetry.triedStreamUrls.add(stream.url);
+      clearPlaybackWatchdogs();
       setPlayerLoading(true, preservePosition ? "画質を切り替え中…" : "動画を読み込み中…");
       if (stream._progressive || !state.currentAudioStream) {
         audio.pause();
@@ -3076,6 +3160,7 @@
       }, { once: true });
       player.src = stream.url;
       player.load();
+      if (wasPlaying) armPlaybackWatchdog();
     }
 
     function uniqueVideoItems(items, blockedIds = new Set(), includeLive = false) {
@@ -3220,10 +3305,79 @@
       }
     }
 
+    async function retryPlaybackFromFallback() {
+      const retry = state.playbackRetry;
+      const videoId = state.currentVideo?.videoId;
+      const player = $("#player");
+      if (!retry || !videoId || retry.videoId !== videoId || retry.busy) return;
+      const shouldResume = state.playbackRequested || (!player.paused && !player.ended);
+      retry.busy = true;
+      clearPlaybackWatchdogs();
+      setPlayerLoading(true, "別のAPI・動画ソースを自動検索中…");
+      try {
+        while (state.playbackRetry === retry && state.route === "watch" && state.currentVideo?.videoId === videoId) {
+          const nextStream = state.currentPlaybackCandidates.find((stream) =>
+            stream?.url && !retry.triedStreamUrls.has(stream.url)
+          );
+          if (nextStream) {
+            const visibleStream = state.currentStreams.find((stream) =>
+              streamQuality(stream) === streamQuality(nextStream)
+            ) || state.currentStreams[0];
+            if (visibleStream) renderQualityOptions(state.currentStreams, visibleStream);
+            setPlayerStream(nextStream, true, shouldResume);
+            showToast("別の動画ソースへ自動切替しました");
+            return;
+          }
+
+          const raw = await api(`videos/${encodeURIComponent(videoId)}`, {
+            excludedProviders: retry.attemptedProviders,
+            preferPiped: true
+          });
+          if (state.playbackRetry !== retry || state.route !== "watch" || state.currentVideo?.videoId !== videoId) return;
+          const provider = state.lastApiProvider;
+          if (provider) retry.attemptedProviders.add(`${provider.kind}:${provider.instance}`);
+
+          const streams = getQualityStreams(raw);
+          const candidates = getQualityStreams(raw, true);
+          state.currentStreams = streams;
+          state.currentPlaybackCandidates = candidates;
+          state.currentAudioStream = getAudioStream(raw);
+          state.downloadStream = getDownloadStream(streams);
+          const fallbackStream = candidates.find((stream) =>
+            stream?.url && !retry.triedStreamUrls.has(stream.url)
+          );
+          if (!fallbackStream) continue;
+
+          const visibleStream = streams.find((stream) =>
+            streamQuality(stream) === streamQuality(fallbackStream)
+          ) || streams[0];
+          renderQualityOptions(streams, visibleStream);
+          $("#downloadButton").disabled = !state.downloadStream;
+          setPlayerStream(fallbackStream, true, shouldResume);
+          showToast("別のAPI・インスタンスへ自動切替しました");
+          return;
+        }
+      } catch (error) {
+        if (error.name !== "AbortError") {
+          setPlayerLoading(false);
+          setStatus("error", "全API・インスタンスを試しました");
+          showToast("全API・インスタンスで再生できませんでした");
+        }
+      } finally {
+        if (state.playbackRetry === retry) retry.busy = false;
+      }
+    }
+
     async function openVideo(videoId, playlistId = "") {
       if (state.route === "home" && state.lastPath === DEFAULT_HOME_PATH) saveHomeSnapshot();
       stopPlayback();
       state.route = "watch";
+      state.playbackRetry = {
+        videoId,
+        attemptedProviders: new Set(),
+        triedStreamUrls: new Set(),
+        busy: false
+      };
       state.watchPlaylistId = playlistId || null;
       $("#downloadButton").disabled = true;
       $("#homePage").classList.add("hidden");
@@ -3249,6 +3403,7 @@
         }
       };
       state.currentVideo = null;
+      state.playbackRequested = false;
       $("#player").pause();
       $("#qualitySelect").innerHTML = "<option>読み込み中…</option>";
       $("#qualitySelect").disabled = true;
@@ -3264,8 +3419,11 @@
       window.scrollTo({ top: 0, behavior: "instant" });
       try {
         const raw = await api(`videos/${encodeURIComponent(videoId)}`);
+        const provider = state.lastApiProvider;
+        if (provider) state.playbackRetry?.attemptedProviders.add(`${provider.kind}:${provider.instance}`);
         const item = normalizeItem(raw);
         const streams = getQualityStreams(raw);
+        const playbackCandidates = getQualityStreams(raw, true);
         state.currentAudioStream = getAudioStream(raw);
         state.downloadStream = getDownloadStream(streams);
         const progressive = streams.filter((candidate) => candidate._progressive);
@@ -3275,6 +3433,7 @@
           || streams[0];
         if (!stream?.url) throw new Error("再生URLがありません");
         state.currentStreams = streams;
+        state.currentPlaybackCandidates = playbackCandidates;
         state.currentVideo = item;
         saveHistory(item);
         $("#watchTitle").textContent = item.title;
@@ -3538,11 +3697,24 @@
       if (stream && stream !== state.currentStream) setPlayerStream(stream, true);
     });
     $("#player").addEventListener("loadstart", () => setPlayerLoading(true));
-    $("#player").addEventListener("waiting", () => setPlayerLoading(true, "バッファリング中…"));
-    $("#player").addEventListener("stalled", () => setPlayerLoading(true, "接続を待っています…"));
-    $("#player").addEventListener("loadeddata", () => setPlayerLoading(false));
-    $("#player").addEventListener("canplay", () => setPlayerLoading(false));
+    $("#player").addEventListener("waiting", () => {
+      setPlayerLoading(true, "バッファリング中…");
+      armPlaybackStallWatchdog();
+    });
+    $("#player").addEventListener("stalled", () => {
+      setPlayerLoading(true, "接続を待っています…");
+      armPlaybackStallWatchdog();
+    });
+    $("#player").addEventListener("loadeddata", () => {
+      clearPlaybackWatchdogs();
+      setPlayerLoading(false);
+    });
+    $("#player").addEventListener("canplay", () => {
+      clearPlaybackWatchdogs();
+      setPlayerLoading(false);
+    });
     $("#player").addEventListener("playing", () => {
+      clearPlaybackWatchdogs();
       setPlayerLoading(false);
       const audio = $("#audioPlayer");
       if (audio.src) {
@@ -3550,14 +3722,23 @@
         audio.play().catch(() => {});
       }
     });
-    $("#player").addEventListener("error", () => setPlayerLoading(false));
+    $("#player").addEventListener("error", () => {
+      setPlayerLoading(false);
+      retryPlaybackFromFallback();
+    });
     $("#player").addEventListener("play", () => {
+      state.playbackRequested = true;
+      armPlaybackWatchdog();
       const audio = $("#audioPlayer");
       if (!audio.src) return;
       syncAudioToVideo();
       audio.play().catch(() => {});
     });
-    $("#player").addEventListener("pause", () => $("#audioPlayer").pause());
+    $("#player").addEventListener("pause", () => {
+      const player = $("#player");
+      if (!player.error && !state.playbackRetry?.busy) state.playbackRequested = false;
+      $("#audioPlayer").pause();
+    });
     $("#player").addEventListener("waiting", () => $("#audioPlayer").pause());
     $("#player").addEventListener("seeking", syncAudioToVideo);
     $("#player").addEventListener("seeked", syncAudioToVideo);
@@ -3570,6 +3751,7 @@
       $("#audioPlayer").muted = $("#player").muted;
     });
     $("#player").addEventListener("ended", () => {
+      state.playbackRequested = false;
       const audio = $("#audioPlayer");
       audio.pause();
       audio.currentTime = 0;
