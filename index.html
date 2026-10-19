@@ -1348,7 +1348,7 @@
       playbackStallWatchdog: null,
       nextItems: [],
       watchPlaylistId: null,
-      abortController: null,
+      abortControllers: {},
       playbackGeneration: 0,
       commentsGeneration: 0,
       commentContinuation: ""
@@ -1361,20 +1361,19 @@
     const icon = (name, className = "icon") => `<svg class="${className}" aria-hidden="true"><use href="#i-${name}"></use></svg>`;
 
     function getHealthOrder() {
-      const fallbackInstances = INSTANCES.filter((instance) => instance !== PRIMARY_INSTANCE);
       try {
         const health = JSON.parse(localStorage.getItem(HEALTH_KEY) || "{}");
-        fallbackInstances.sort((a, b) => (health[b] || 0) - (health[a] || 0));
+        return [...INSTANCES].sort((a, b) => (health[b] || 0) - (health[a] || 0));
       } catch (_) {}
-      return [PRIMARY_INSTANCE, ...fallbackInstances];
+      return [...INSTANCES];
     }
 
     function rememberInstance(instance) {
       try {
         const health = JSON.parse(localStorage.getItem(HEALTH_KEY) || "{}");
-        health[instance] = Math.min((health[instance] || 0) + 1, 8);
+        health[instance] = Math.min(Math.max(health[instance] || 0, 0) + 1, 8);
         for (const key of Object.keys(health)) {
-          if (key !== instance) health[key] = Math.max((health[key] || 0) - 1, 0);
+          if (key !== instance && health[key] > 0) health[key] -= 1;
         }
         localStorage.setItem(HEALTH_KEY, JSON.stringify(health));
       } catch (_) {}
@@ -1648,7 +1647,120 @@
       throw new Error("未対応のPiped APIです");
     }
 
-    function requestInstance(instance, path, parentSignal) {
+    function raceInstances(instances, startTask, signal, { stagger = 800, maxParallel = 6 } = {}) {
+      return new Promise((resolve, reject) => {
+        const tasks = [];
+        const errors = [];
+        const limit = Math.max(1, maxParallel);
+        let nextIndex = 0;
+        let active = 0;
+        let timer = null;
+        let settled = false;
+
+        const abortError = () => {
+          const error = new Error("操作を中断しました");
+          error.name = "AbortError";
+          return error;
+        };
+        const cleanup = () => {
+          if (timer !== null) clearTimeout(timer);
+          timer = null;
+          signal.removeEventListener("abort", onAbort);
+        };
+        const cancelTasks = (winner) => {
+          tasks.forEach((task) => {
+            if (task !== winner) task.cancel();
+          });
+        };
+        const rejectAll = () => {
+          const error = new Error(errors.map((reason) => reason?.message || String(reason)).filter(Boolean).join(" / ")
+            || "すべてのインスタンスが応答しません");
+          error.errors = errors;
+          settled = true;
+          cleanup();
+          reject(error);
+        };
+        const onAbort = () => {
+          if (settled) return;
+          settled = true;
+          cleanup();
+          cancelTasks(null);
+          reject(abortError());
+        };
+        const scheduleNext = () => {
+          if (settled || timer !== null || active >= limit || nextIndex >= instances.length) return;
+          timer = setTimeout(() => {
+            timer = null;
+            launchNext();
+          }, Math.max(0, stagger));
+        };
+        const launchNext = () => {
+          if (settled) return;
+          if (signal.aborted) {
+            onAbort();
+            return;
+          }
+          if (active >= limit || nextIndex >= instances.length) {
+            if (active === 0 && nextIndex >= instances.length) rejectAll();
+            return;
+          }
+
+          const instance = instances[nextIndex++];
+          let task;
+          try {
+            task = startTask(instance, signal);
+          } catch (error) {
+            errors.push(error);
+            if (nextIndex < instances.length && active < limit) {
+              launchNext();
+            } else if (active === 0 && nextIndex >= instances.length) {
+              rejectAll();
+            }
+            return;
+          }
+          tasks.push(task);
+          active += 1;
+          task.promise.then((result) => {
+            if (settled) return;
+            settled = true;
+            cleanup();
+            cancelTasks(task);
+            resolve(result);
+          }).catch((error) => {
+            if (settled) return;
+            active -= 1;
+            if (signal.aborted || error?.name === "AbortError") {
+              onAbort();
+              return;
+            }
+            errors.push(error);
+            if (nextIndex < instances.length && active < limit) {
+              if (timer !== null) {
+                clearTimeout(timer);
+                timer = null;
+              }
+              launchNext();
+            } else if (active === 0 && nextIndex >= instances.length) {
+              rejectAll();
+            }
+          });
+          scheduleNext();
+        };
+
+        if (signal.aborted) {
+          reject(abortError());
+          return;
+        }
+        signal.addEventListener("abort", onAbort, { once: true });
+        if (!instances.length) {
+          rejectAll();
+          return;
+        }
+        launchNext();
+      });
+    }
+
+    function requestInstance(instance, path, parentSignal, timeoutMs = (/^videos\//.test(path) ? 9000 : 6000)) {
       const controller = new AbortController();
       const task = { instance, cancelled: false, cancel: () => {} };
       let timedOut = false;
@@ -1656,7 +1768,7 @@
       const timeout = setTimeout(() => {
         timedOut = true;
         controller.abort();
-      }, 4500);
+      }, timeoutMs);
       parentSignal.addEventListener("abort", onAbort, { once: true });
       task.cancel = () => {
         task.cancelled = true;
@@ -1672,6 +1784,12 @@
         if (/^videos\/[^/?]+(?:\?|$)/.test(path)) {
           const formatStreams = Array.isArray(data?.formatStreams) ? data.formatStreams : [];
           const adaptiveFormats = Array.isArray(data?.adaptiveFormats) ? data.adaptiveFormats : [];
+          const origin = new URL(instance).origin;
+          for (const stream of [...formatStreams, ...adaptiveFormats]) {
+            if (typeof stream?.url === "string" && stream.url.startsWith("/")) {
+              stream.url = `${origin}${stream.url}`;
+            }
+          }
           const hasVideo = formatStreams.some((stream) => stream?.url)
             || adaptiveFormats.some((stream) => stream?.url && /^video\//i.test(String(stream.type || "")));
           if (!hasVideo) throw new Error("再生可能な動画ストリームがありません");
@@ -1732,51 +1850,52 @@
       const instances = getPipedHealthOrder(spec.preferredInstance)
         .filter((instance) => !excludedProviders.has(`piped:${instance}`));
       setStatus("busy", "Piped APIへ切替中");
-      for (let offset = 0; offset < instances.length; offset += 4) {
-        const tasks = instances.slice(offset, offset + 4)
-          .map((instance) => requestPipedInstance(instance, spec, parentSignal));
-        try {
-          const result = await Promise.any(tasks.map((task) => task.promise));
-          tasks.forEach((task) => {
-            if (task.instance !== result.instance) task.cancel();
-          });
-          rememberInstance(result.instance);
-          if (spec.kind === "search") {
-            if (result.nextpage) PIPED_SEARCH_PAGES.set(spec.key, { nextpage: result.nextpage, instance: result.instance });
-            else PIPED_SEARCH_PAGES.delete(spec.key);
-          } else if (spec.kind === "comments") {
-            if (result.nextpage) PIPED_COMMENT_PAGES.set(spec.videoId, { nextpage: result.nextpage, instance: result.instance });
-            else PIPED_COMMENT_PAGES.delete(spec.videoId);
-          }
-          return result;
-        } catch (error) {
-          if (parentSignal.aborted) {
-            const aborted = new Error("操作を中断しました");
-            aborted.name = "AbortError";
-            throw aborted;
-          }
-          const reasons = error.errors || [error];
-          errors.push(...reasons.map((reason) => reason.message).filter(Boolean));
+      try {
+        const result = await raceInstances(
+          instances,
+          (instance, signal) => requestPipedInstance(instance, spec, signal),
+          parentSignal,
+          { maxParallel: 4 }
+        );
+        rememberInstance(result.instance);
+        if (spec.kind === "search") {
+          if (result.nextpage) PIPED_SEARCH_PAGES.set(spec.key, { nextpage: result.nextpage, instance: result.instance });
+          else PIPED_SEARCH_PAGES.delete(spec.key);
+        } else if (spec.kind === "comments") {
+          if (result.nextpage) PIPED_COMMENT_PAGES.set(spec.videoId, { nextpage: result.nextpage, instance: result.instance });
+          else PIPED_COMMENT_PAGES.delete(spec.videoId);
         }
+        return result;
+      } catch (error) {
+        if (parentSignal.aborted) {
+          const aborted = new Error("操作を中断しました");
+          aborted.name = "AbortError";
+          throw aborted;
+        }
+        const reasons = error.errors || [error];
+        errors.push(...reasons.map((reason) => reason.message).filter(Boolean));
       }
       throw new Error(errors.slice(0, 4).join(" / ") || "Pipedインスタンスが応答しません");
     }
 
     async function api(path, options = {}) {
-      if (state.abortController) state.abortController.abort();
-      state.abortController = new AbortController();
+      const lane = options.lane || "main";
+      state.abortControllers[lane]?.abort();
+      const controller = new AbortController();
+      state.abortControllers[lane] = controller;
+      const signal = controller.signal;
       const errors = [];
       const excludedProviders = options.excludedProviders instanceof Set ? options.excludedProviders : new Set();
-      state.lastApiProvider = null;
+      if (lane === "main") state.lastApiProvider = null;
       setStatus("busy", "接続中");
       const tryPiped = async () => {
         try {
-          const result = await fetchFromPiped(path, state.abortController.signal, excludedProviders);
+          const result = await fetchFromPiped(path, signal, excludedProviders);
           if (!result) return null;
-          state.lastApiProvider = { kind: "piped", instance: result.instance };
+          if (lane === "main") state.lastApiProvider = { kind: "piped", instance: result.instance };
           return result;
         } catch (error) {
-          if (state.abortController.signal.aborted) {
+          if (signal.aborted) {
             const aborted = new Error("操作を中断しました");
             aborted.name = "AbortError";
             throw aborted;
@@ -1793,45 +1912,26 @@
         }
       }
       const instances = getHealthOrder()
+        .slice(0, options.maxInstances || undefined)
         .filter((instance) => !excludedProviders.has(`invidious:${instance}`));
-      if (instances[0] === PRIMARY_INSTANCE) {
-        try {
-          const result = await requestInstance(PRIMARY_INSTANCE, path, state.abortController.signal).promise;
-          rememberInstance(result.instance);
-          state.lastApiProvider = { kind: "invidious", instance: result.instance };
-          setStatus("", "自動接続");
-          return result.data;
-        } catch (error) {
-          if (state.abortController.signal.aborted) {
-            const aborted = new Error("操作を中断しました");
-            aborted.name = "AbortError";
-            throw aborted;
-          }
-          errors.push(error.message || String(error));
+      try {
+        const result = await raceInstances(
+          instances,
+          (instance, requestSignal) => requestInstance(instance, path, requestSignal),
+          signal
+        );
+        rememberInstance(result.instance);
+        if (lane === "main") state.lastApiProvider = { kind: "invidious", instance: result.instance };
+        setStatus("", "自動接続");
+        return result.data;
+      } catch (error) {
+        if (signal.aborted) {
+          const aborted = new Error("操作を中断しました");
+          aborted.name = "AbortError";
+          throw aborted;
         }
-      }
-      const fallbackInstances = instances.filter((instance) => instance !== PRIMARY_INSTANCE);
-      for (let offset = 0; offset < fallbackInstances.length; offset += 4) {
-        const tasks = fallbackInstances.slice(offset, offset + 4)
-          .map((instance) => requestInstance(instance, path, state.abortController.signal));
-        try {
-          const result = await Promise.any(tasks.map((task) => task.promise));
-          tasks.forEach((task) => {
-            if (task.instance !== result.instance) task.cancel();
-          });
-          rememberInstance(result.instance);
-          state.lastApiProvider = { kind: "invidious", instance: result.instance };
-          setStatus("", "自動接続");
-          return result.data;
-        } catch (error) {
-          if (state.abortController.signal.aborted) {
-            const aborted = new Error("操作を中断しました");
-            aborted.name = "AbortError";
-            throw aborted;
-          }
-          const reasons = error.errors || [error];
-          errors.push(...reasons.map((reason) => reason.message).filter(Boolean));
-        }
+        const reasons = error.errors || [error];
+        errors.push(...reasons.map((reason) => reason.message).filter(Boolean));
       }
       if (!options.preferPiped) {
         const pipedResult = await tryPiped();
@@ -3004,7 +3104,7 @@
       const generation = state.playbackGeneration;
       state.playbackWatchdog = setTimeout(() => {
         state.playbackWatchdog = null;
-        if (generation === state.playbackGeneration && state.playbackRequested && player.readyState < 2) {
+        if (generation === state.playbackGeneration && player.readyState < (state.playbackRequested ? 2 : 1)) {
           retryPlaybackFromFallback();
         }
       }, 15000);
@@ -3178,7 +3278,7 @@
       }, { once: true });
       player.src = stream.url;
       player.load();
-      if (wasPlaying) armPlaybackWatchdog();
+      armPlaybackWatchdog();
     }
 
     function uniqueVideoItems(items, blockedIds = new Set(), includeLive = false) {
@@ -3302,7 +3402,10 @@
       try {
         const params = new URLSearchParams({ source: "youtube", sort_by: "top" });
         if (continuation) params.set("continuation", continuation);
-        const data = await api("comments/" + encodeURIComponent(videoId) + "?" + params.toString());
+        const data = await api("comments/" + encodeURIComponent(videoId) + "?" + params.toString(), {
+          lane: "comments",
+          maxInstances: 12
+        });
         if (requestId !== state.commentsGeneration || state.route !== "watch" || state.currentVideo?.videoId !== videoId) return;
         const comments = Array.isArray(data) ? data : (Array.isArray(data?.comments) ? data.comments : []);
         const nextContinuation = typeof data?.continuation === "string" ? data.continuation : "";
@@ -3329,6 +3432,8 @@
       const player = $("#player");
       if (!retry || !videoId || retry.videoId !== videoId || retry.busy) return;
       const shouldResume = state.playbackRequested || (!player.paused && !player.ended);
+      retry.failures = (retry.failures || 0) + 1;
+      if (retry.failures % 2 === 0) state.currentPlaybackCandidates = [];
       retry.busy = true;
       clearPlaybackWatchdogs();
       setPlayerLoading(true, "別のAPI・動画ソースを自動検索中…");
@@ -3347,9 +3452,8 @@
             return;
           }
 
-          const raw = await api(`videos/${encodeURIComponent(videoId)}`, {
-            excludedProviders: retry.attemptedProviders,
-            preferPiped: true
+          const raw = await api(`videos/${encodeURIComponent(videoId)}?local=true`, {
+            excludedProviders: retry.attemptedProviders
           });
           if (state.playbackRetry !== retry || state.route !== "watch" || state.currentVideo?.videoId !== videoId) return;
           const provider = state.lastApiProvider;
@@ -3387,6 +3491,7 @@
     }
 
     async function openVideo(videoId, playlistId = "") {
+      state.abortControllers.comments?.abort();
       if (state.route === "home" && state.lastPath === DEFAULT_HOME_PATH) saveHomeSnapshot();
       stopPlayback();
       state.route = "watch";
@@ -3436,7 +3541,7 @@
       history.pushState(null, "", `#watch=${encodeURIComponent(videoId)}`);
       window.scrollTo({ top: 0, behavior: "instant" });
       try {
-        const raw = await api(`videos/${encodeURIComponent(videoId)}`);
+        const raw = await api(`videos/${encodeURIComponent(videoId)}?local=true`);
         const provider = state.lastApiProvider;
         if (provider) state.playbackRetry?.attemptedProviders.add(`${provider.kind}:${provider.instance}`);
         const item = normalizeItem(raw);
@@ -3476,6 +3581,7 @@
         if (state.watchPlaylistId) renderSidePanel();
         loadComments(videoId);
       } catch (error) {
+        if (error.name === "AbortError") return;
         setPlayerLoading(false);
         $("#watchTitle").textContent = "動画を再生できません";
         $("#watchDescription").textContent = "この動画の再生URLを取得できませんでした。別の動画をお試しください。";
