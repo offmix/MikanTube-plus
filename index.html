@@ -1212,8 +1212,9 @@
      */
     // Existing instances are kept first; this list also includes every unique
     // Invidious API instance from the supplied K-Tube v18 snapshot.
+    const PRIMARY_INSTANCE = "https://invidious.schenkel.eti.br";
     const INSTANCES = [
-      "invidious.schenkel.eti.br",
+      PRIMARY_INSTANCE,
       "https://invidious.ritoge.com",
       "https://invidious.f5.si",
       "https://invidious.ducks.party",
@@ -1360,12 +1361,12 @@
     const icon = (name, className = "icon") => `<svg class="${className}" aria-hidden="true"><use href="#i-${name}"></use></svg>`;
 
     function getHealthOrder() {
+      const fallbackInstances = INSTANCES.filter((instance) => instance !== PRIMARY_INSTANCE);
       try {
         const health = JSON.parse(localStorage.getItem(HEALTH_KEY) || "{}");
-        return [...INSTANCES].sort((a, b) => (health[b] || 0) - (health[a] || 0));
-      } catch (_) {
-        return [...INSTANCES];
-      }
+        fallbackInstances.sort((a, b) => (health[b] || 0) - (health[a] || 0));
+      } catch (_) {}
+      return [PRIMARY_INSTANCE, ...fallbackInstances];
     }
 
     function rememberInstance(instance) {
@@ -1793,8 +1794,25 @@
       }
       const instances = getHealthOrder()
         .filter((instance) => !excludedProviders.has(`invidious:${instance}`));
-      for (let offset = 0; offset < instances.length; offset += 4) {
-        const tasks = instances.slice(offset, offset + 4)
+      if (instances[0] === PRIMARY_INSTANCE) {
+        try {
+          const result = await requestInstance(PRIMARY_INSTANCE, path, state.abortController.signal).promise;
+          rememberInstance(result.instance);
+          state.lastApiProvider = { kind: "invidious", instance: result.instance };
+          setStatus("", "自動接続");
+          return result.data;
+        } catch (error) {
+          if (state.abortController.signal.aborted) {
+            const aborted = new Error("操作を中断しました");
+            aborted.name = "AbortError";
+            throw aborted;
+          }
+          errors.push(error.message || String(error));
+        }
+      }
+      const fallbackInstances = instances.filter((instance) => instance !== PRIMARY_INSTANCE);
+      for (let offset = 0; offset < fallbackInstances.length; offset += 4) {
+        const tasks = fallbackInstances.slice(offset, offset + 4)
           .map((instance) => requestInstance(instance, path, state.abortController.signal));
         try {
           const result = await Promise.any(tasks.map((task) => task.promise));
