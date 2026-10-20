@@ -625,10 +625,24 @@
       margin-top: 14px;
       padding: 14px;
       white-space: pre-wrap;
+      overflow-wrap: anywhere;
       background: var(--surface-2);
       border-radius: 10px;
       font-size: 13px;
     }
+    .description.expanded { max-height: none; overflow: visible; }
+    .description-toggle {
+      display: block;
+      margin: 7px 0 0 4px;
+      padding: 5px 8px;
+      color: var(--text);
+      background: transparent;
+      border: 0;
+      border-radius: 6px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .description-toggle:hover { background: var(--surface-2); }
     .comments-section { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line); }
     .comments-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
     .comments-header h2 { margin: 0; font-size: 18px; }
@@ -1091,10 +1105,11 @@
                   <button class="pill-button subscribe-button" id="subscribeButton" type="button" aria-pressed="false"><svg class="icon small"><use href="#i-check"></use></svg><span>チャンネル登録</span></button>
                   <button class="pill-button" id="likeButton" type="button"><svg class="icon small"><use href="#i-like"></use></svg><span>評価</span></button>
                   <button class="pill-button" id="addToPlaylistButton" type="button"><svg class="icon small"><use href="#i-library"></use></svg><span>再生リストに追加</span></button>
-                   <button class="pill-button" id="downloadButton" type="button" disabled><svg class="icon small"><use href="#i-download"></use></svg><span>音声付きDL</span></button>
+                   <button class="pill-button" id="downloadButton" type="button" disabled><svg class="icon small"><use href="#i-download"></use></svg><span>DL</span></button>
                 </div>
               </div>
               <div class="description" id="watchDescription"></div>
+              <button class="description-toggle" id="descriptionToggle" type="button" aria-expanded="false">全部を見る</button>
               <section class="comments-section" id="commentsSection" aria-labelledby="commentsHeading">
                 <div class="comments-header"><h2 id="commentsHeading">コメント</h2></div>
                 <p class="comments-status" id="commentsStatus" role="status" aria-live="polite">動画を選ぶとコメントを取得します。</p>
@@ -1363,9 +1378,10 @@
     function getHealthOrder() {
       try {
         const health = JSON.parse(localStorage.getItem(HEALTH_KEY) || "{}");
-        return [...INSTANCES].sort((a, b) => (health[b] || 0) - (health[a] || 0));
+        const ranked = [...INSTANCES].sort((a, b) => (health[b] || 0) - (health[a] || 0));
+        return [PRIMARY_INSTANCE, ...ranked.filter((instance) => instance !== PRIMARY_INSTANCE)];
       } catch (_) {}
-      return [...INSTANCES];
+      return [PRIMARY_INSTANCE, ...INSTANCES.filter((instance) => instance !== PRIMARY_INSTANCE)];
     }
 
     function rememberInstance(instance) {
@@ -3490,6 +3506,13 @@
       }
     }
 
+    $("#descriptionToggle").addEventListener("click", () => {
+      const description = $("#watchDescription");
+      const expanded = description.classList.toggle("expanded");
+      $("#descriptionToggle").textContent = expanded ? "一部を表示" : "全部を見る";
+      $("#descriptionToggle").setAttribute("aria-expanded", String(expanded));
+    });
+
     async function openVideo(videoId, playlistId = "") {
       state.abortControllers.comments?.abort();
       if (state.route === "home" && state.lastPath === DEFAULT_HOME_PATH) saveHomeSnapshot();
@@ -3512,6 +3535,10 @@
       $("#watchAuthor").textContent = "";
       $("#watchStats").textContent = "";
       $("#watchDescription").textContent = "";
+      $("#watchDescription").classList.remove("expanded");
+      $("#descriptionToggle").textContent = "全部を見る";
+      $("#descriptionToggle").setAttribute("aria-expanded", "false");
+      $("#descriptionToggle").classList.remove("hidden");
       state.commentsGeneration += 1;
       state.commentContinuation = "";
       $("#commentsList").innerHTML = "";
@@ -3571,7 +3598,9 @@
         $("#watchAuthor").textContent = item.author;
         $("#watchStats").textContent = `${formatCount(item.viewCount)} 回視聴${item.publishedText ? `・${item.publishedText}` : ""}`;
         applySubscribeButton();
-        $("#watchDescription").textContent = raw.descriptionHtml ? stripHtml(raw.descriptionHtml) : (item.description || "説明はありません。");
+        const fullDescription = raw.descriptionHtml ? stripHtml(raw.descriptionHtml) : (item.description || "説明はありません。");
+        $("#watchDescription").textContent = fullDescription;
+        $("#descriptionToggle").classList.toggle("hidden", fullDescription.length <= 240);
         const player = $("#player");
         player.poster = thumbnail(item);
         renderQualityOptions(state.currentStreams, stream);
