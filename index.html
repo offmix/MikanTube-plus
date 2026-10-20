@@ -572,11 +572,22 @@
       display: flex;
       align-items: center;
       justify-content: flex-end;
+      flex-wrap: wrap;
       gap: 8px;
       min-height: 42px;
       color: var(--muted);
       font-size: 13px;
     }
+    .autoplay-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-right: auto;
+      color: var(--text);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .autoplay-toggle input { accent-color: var(--accent); width: 15px; height: 15px; }
     .quality-select {
       min-width: 112px;
       height: 34px;
@@ -856,6 +867,31 @@
       border-radius: 16px;
       box-shadow: 0 20px 70px rgba(0,0,0,.28);
     }
+    /* 設定は右側からスライドインするドロワー */
+    #settingsBackdrop {
+      display: flex;
+      justify-content: flex-end;
+      align-items: stretch;
+      padding: 0;
+      opacity: 0;
+      transition: opacity .26s ease;
+    }
+    #settingsBackdrop.is-open { opacity: 1; }
+    #settingsBackdrop .settings-panel {
+      width: min(440px, 92vw);
+      height: 100%;
+      max-height: 100vh;
+      box-sizing: border-box;
+      padding: 24px;
+      border-radius: 18px 0 0 18px;
+      transform: translateX(100%);
+      transition: transform .28s cubic-bezier(.2,.75,.25,1);
+      will-change: transform;
+    }
+    #settingsBackdrop.is-open .settings-panel { transform: translateX(0); }
+    @media (prefers-reduced-motion: reduce) {
+      #settingsBackdrop, #settingsBackdrop .settings-panel { transition: none; }
+    }
     .settings-header {
       display: flex;
       align-items: center;
@@ -1113,6 +1149,7 @@
                 </div>
               </div>
               <div class="player-toolbar">
+                <label class="autoplay-toggle" for="autoPlayToggle"><input id="autoPlayToggle" type="checkbox">自動再生をON</label>
                 <label for="qualitySelect">画質・音声</label>
                 <select class="quality-select" id="qualitySelect" aria-label="画質を選択" disabled>
                   <option>読み込み中…</option>
@@ -1228,8 +1265,19 @@
       <div class="settings-group">
         <div class="settings-row">
           <div>
+            <span class="settings-label">自動再生をON</span>
+            <p class="settings-help">動画を開いたときに自動で再生を開始します。ブラウザの制限により再生が始まらない場合は、再生ボタンを押してください。</p>
+          </div>
+          <label class="switch" aria-label="自動再生をON">
+            <input id="autoPlaySettingsToggle" type="checkbox">
+            <span class="switch-track"></span>
+          </label>
+        </div>
+      </div>
+      <div class="settings-group">
+        <div class="settings-row">
+          <div>
             <span class="settings-label">おすすめ＋</span>
-            <p class="settings-help">視聴・検索履歴に近い未視聴動画を、複数のチャンネルからおすすめします。</p>
           </div>
           <label class="switch" aria-label="おすすめ＋">
             <input id="personalizedRecommendationsToggle" type="checkbox">
@@ -1241,7 +1289,6 @@
         <div class="settings-row">
           <div>
             <span class="settings-label">Pipedだけを使用</span>
-            <p class="settings-help">動画の検索・情報取得をPiped APIだけで行います。Pipedが使えない場合、Invidiousへは切り替えません。</p>
           </div>
           <label class="switch" aria-label="Pipedだけを使用">
             <input id="pipedOnlyToggle" type="checkbox">
@@ -1253,7 +1300,6 @@
         <div class="settings-row">
           <div>
             <span class="settings-label">Invだけ使用</span>
-            <p class="settings-help">Invidious APIだけを使用します。Piped APIは試行しません。</p>
           </div>
           <label class="switch" aria-label="Invだけ使用">
             <input id="invOnlyToggle" type="checkbox">
@@ -1485,9 +1531,9 @@
 
     function readSettings() {
       try {
-        return { theme: "light", tabPreset: "classroom", customTitle: "", customFavicon: "", personalizedRecommendations: false, apiMode: "auto", ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}") };
+        return { theme: "light", tabPreset: "classroom", customTitle: "", customFavicon: "", personalizedRecommendations: false, autoPlay: false, apiMode: "auto", ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}") };
       } catch (_) {
-        return { theme: "light", tabPreset: "classroom", customTitle: "", customFavicon: "", personalizedRecommendations: false, apiMode: "auto" };
+        return { theme: "light", tabPreset: "classroom", customTitle: "", customFavicon: "", personalizedRecommendations: false, autoPlay: false, apiMode: "auto" };
       }
     }
 
@@ -1506,6 +1552,8 @@
       $("#customTabTitle").value = settings.customTitle || "";
       $("#customFaviconUrl").value = settings.customFavicon || "";
       $("#personalizedRecommendationsToggle").checked = settings.personalizedRecommendations === true;
+      $("#autoPlayToggle").checked = settings.autoPlay === true;
+      $("#autoPlaySettingsToggle").checked = settings.autoPlay === true;
       $("#pipedOnlyToggle").checked = settings.apiMode === "piped";
       $("#invOnlyToggle").checked = settings.apiMode === "invidious";
       applyTabSettings(settings);
@@ -1519,11 +1567,12 @@
         customTitle: $("#customTabTitle").value,
         customFavicon: $("#customFaviconUrl").value,
         personalizedRecommendations: $("#personalizedRecommendationsToggle").checked,
+        autoPlay: $("#autoPlaySettingsToggle").checked,
         apiMode: $("#pipedOnlyToggle").checked ? "piped" : $("#invOnlyToggle").checked ? "invidious" : "auto"
       };
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
       applySettings(settings);
-      $("#settingsBackdrop").classList.add("hidden");
+      closeSettingsDrawer();
       showToast("設定を保存しました");
     }
 
@@ -2553,9 +2602,7 @@
               state.recommendationViewActive = true;
               state.lastItems = recommendations;
               $("#pageHeading").textContent = "おすすめ＋";
-              $("#pageSubheading").textContent = queries.length
-                ? `履歴に関連する未視聴動画を${queries.length}種類の検索語から表示`
-                : "視聴・検索履歴をもとにした未視聴動画";
+              $("#pageSubheading").textContent = queries.lengt
             }
           }
         }
@@ -3406,7 +3453,9 @@
           player.currentTime = Math.min(currentTime, Number.isFinite(player.duration) ? player.duration : currentTime);
         }
         syncAudioToVideo();
-        if (wasPlaying) player.play().catch(() => {});
+        if (wasPlaying || (!preservePosition && readSettings().autoPlay === true)) {
+          player.play().catch(() => showToast("自動再生できませんでした。再生ボタンを押してください"));
+        }
       }, { once: true });
       player.src = stream.url;
       player.load();
@@ -4066,13 +4115,23 @@
       syncAudioToVideo();
       if (!$("#player").paused && !$("#player").ended) $("#audioPlayer").play().catch(() => {});
     });
-    $("#settingsButton").addEventListener("click", () => {
+    function openSettingsDrawer() {
+      const backdrop = $("#settingsBackdrop");
       applySettings(readSettings());
-      $("#settingsBackdrop").classList.remove("hidden");
-    });
-    $("#closeSettingsButton").addEventListener("click", () => $("#settingsBackdrop").classList.add("hidden"));
+      backdrop.classList.remove("hidden");
+      requestAnimationFrame(() => backdrop.classList.add("is-open"));
+    }
+    function closeSettingsDrawer() {
+      const backdrop = $("#settingsBackdrop");
+      backdrop.classList.remove("is-open");
+      window.setTimeout(() => {
+        if (!backdrop.classList.contains("is-open")) backdrop.classList.add("hidden");
+      }, 290);
+    }
+    $("#settingsButton").addEventListener("click", openSettingsDrawer);
+    $("#closeSettingsButton").addEventListener("click", closeSettingsDrawer);
     $("#settingsBackdrop").addEventListener("click", (event) => {
-      if (event.target === $("#settingsBackdrop")) $("#settingsBackdrop").classList.add("hidden");
+      if (event.target === $("#settingsBackdrop")) closeSettingsDrawer();
     });
     $("#closePlaylistPickerButton").addEventListener("click", closePlaylistPicker);
     $("#playlistPickerBackdrop").addEventListener("click", (event) => {
@@ -4103,6 +4162,16 @@
       $("#customTabTitle").value = preset.title;
       $("#customFaviconUrl").value = preset.favicon;
     });
+    $("#autoPlayToggle").addEventListener("change", () => {
+      const settings = readSettings();
+      settings.autoPlay = $("#autoPlayToggle").checked;
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+      $("#autoPlaySettingsToggle").checked = settings.autoPlay;
+      showToast(settings.autoPlay ? "自動再生をONにしました" : "自動再生をOFFにしました");
+    });
+    $("#autoPlaySettingsToggle").addEventListener("change", () => {
+      $("#autoPlayToggle").checked = $("#autoPlaySettingsToggle").checked;
+    });
     $("#pipedOnlyToggle").addEventListener("change", () => {
       if ($("#pipedOnlyToggle").checked) $("#invOnlyToggle").checked = false;
     });
@@ -4113,6 +4182,8 @@
     $("#resetSettingsButton").addEventListener("click", () => {
       $("#darkModeToggle").checked = false;
       $("#personalizedRecommendationsToggle").checked = false;
+      $("#autoPlaySettingsToggle").checked = false;
+      $("#autoPlayToggle").checked = false;
       $("#pipedOnlyToggle").checked = false;
       $("#invOnlyToggle").checked = false;
       $("#tabPreset").value = "classroom";
@@ -4122,7 +4193,7 @@
     });
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape") {
-        $("#settingsBackdrop").classList.add("hidden");
+        closeSettingsDrawer();
         closePlaylistPicker();
       }
     });
