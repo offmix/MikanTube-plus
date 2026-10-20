@@ -302,6 +302,52 @@
       padding: 0 0 22px;
     }
     .chip-row::-webkit-scrollbar { display: none; }
+    .news-feed-ticker {
+      display: block;
+      position: relative;
+      flex: 1 1 220px;
+      min-width: 180px;
+      height: 34px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 0;
+      background: var(--surface);
+      color: var(--text);
+      text-decoration: none;
+      box-sizing: border-box;
+    }
+    .news-feed-ticker.hidden { display: none !important; }
+    .news-feed-ticker-label {
+      position: absolute;
+      z-index: 1;
+      inset: 0 auto 0 0;
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      background: var(--surface-2);
+      border-right: 1px solid var(--line);
+      font-size: 11px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .news-feed-ticker-track {
+      position: absolute;
+      inset: 0 0 0 52px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+    }
+    .news-feed-ticker-text {
+      display: inline-block;
+      width: max-content;
+      padding-left: 100%;
+      white-space: nowrap;
+      font-size: 12px;
+      animation: newsTickerSlide 7s linear both;
+    }
+    @keyframes newsTickerSlide { from { transform: translateX(0); } to { transform: translateX(-100%); } }
+    @media (prefers-reduced-motion: reduce) { .news-feed-ticker-text { animation: none; padding-left: 8px; } }
+    .news-age-controls { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 9px; }
     .chip {
       height: 34px;
       flex: 0 0 auto;
@@ -1118,6 +1164,10 @@
           <button class="chip" data-query="料理" type="button">料理</button>
           <button class="chip" data-query="テクノロジー" type="button">テクノロジー</button>
           <button class="chip" data-query="学習" type="button">学習</button>
+          <a class="news-feed-ticker hidden" id="newsFeedTicker" href="#" target="_blank" rel="noopener noreferrer" aria-label="Googleニュースフィード">
+            <span class="news-feed-ticker-label">NEWS</span>
+            <span class="news-feed-ticker-track"><span class="news-feed-ticker-text" id="newsFeedTickerText">Googleニュースを読み込み中...</span></span>
+          </a>
         </div>
         <div class="page-title">
           <div>
@@ -1278,6 +1328,7 @@
         <div class="settings-row">
           <div>
             <span class="settings-label">おすすめ＋</span>
+            <p class="settings-help">視聴・検索履歴に近い未視聴動画を、複数のチャンネルからおすすめします。</p>
           </div>
           <label class="switch" aria-label="おすすめ＋">
             <input id="personalizedRecommendationsToggle" type="checkbox">
@@ -1289,6 +1340,7 @@
         <div class="settings-row">
           <div>
             <span class="settings-label">Pipedだけを使用</span>
+            <p class="settings-help">動画の検索・情報取得をPiped APIだけで行います。Pipedが使えない場合、Invidiousへは切り替えません。</p>
           </div>
           <label class="switch" aria-label="Pipedだけを使用">
             <input id="pipedOnlyToggle" type="checkbox">
@@ -1300,11 +1352,25 @@
         <div class="settings-row">
           <div>
             <span class="settings-label">Invだけ使用</span>
+            <p class="settings-help">Invidious APIだけを使用します。Piped APIは試行しません。</p>
           </div>
           <label class="switch" aria-label="Invだけ使用">
             <input id="invOnlyToggle" type="checkbox">
             <span class="switch-track"></span>
           </label>
+        </div>
+      </div>
+      <div class="settings-group">
+        <label class="settings-label" for="newsAgeValue">ニュースの対象期間</label>
+        <p class="settings-help">指定した期間内に公開されたニュースを表示します。最短1時間、最長5年です。</p>
+        <div class="news-age-controls">
+          <input class="settings-input" id="newsAgeValue" type="number" min="1" max="5" step="1" value="30" inputmode="numeric" aria-label="ニュースの期間の数値">
+          <select class="settings-select" id="newsAgeUnit" aria-label="ニュースの期間の単位">
+            <option value="hour">時間以内</option>
+            <option value="day" selected>日以内</option>
+            <option value="month">か月以内</option>
+            <option value="year">年以内</option>
+          </select>
         </div>
       </div>
       <div class="settings-group">
@@ -1531,9 +1597,9 @@
 
     function readSettings() {
       try {
-        return { theme: "light", tabPreset: "classroom", customTitle: "", customFavicon: "", personalizedRecommendations: false, autoPlay: false, apiMode: "auto", ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}") };
+        return { theme: "light", tabPreset: "classroom", customTitle: "", customFavicon: "", personalizedRecommendations: false, autoPlay: false, apiMode: "auto", newsAgeValue: 30, newsAgeUnit: "day", ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}") };
       } catch (_) {
-        return { theme: "light", tabPreset: "classroom", customTitle: "", customFavicon: "", personalizedRecommendations: false, autoPlay: false, apiMode: "auto" };
+        return { theme: "light", tabPreset: "classroom", customTitle: "", customFavicon: "", personalizedRecommendations: false, autoPlay: false, apiMode: "auto", newsAgeValue: 30, newsAgeUnit: "day" };
       }
     }
 
@@ -1556,6 +1622,10 @@
       $("#autoPlaySettingsToggle").checked = settings.autoPlay === true;
       $("#pipedOnlyToggle").checked = settings.apiMode === "piped";
       $("#invOnlyToggle").checked = settings.apiMode === "invidious";
+      $("#newsAgeValue").value = settings.newsAgeValue ?? 30;
+      $("#newsAgeUnit").value = settings.newsAgeUnit || "day";
+      const newsAgeMaxes = { hour: 43830, day: 1826, month: 60, year: 5 };
+      $("#newsAgeValue").max = String(newsAgeMaxes[$("#newsAgeUnit").value] || 1826);
       applyTabSettings(settings);
       document.querySelector('meta[name="theme-color"]').setAttribute("content", settings.theme === "dark" ? "#0f0f0f" : "#ffffff");
     }
@@ -1568,7 +1638,8 @@
         customFavicon: $("#customFaviconUrl").value,
         personalizedRecommendations: $("#personalizedRecommendationsToggle").checked,
         autoPlay: $("#autoPlaySettingsToggle").checked,
-        apiMode: $("#pipedOnlyToggle").checked ? "piped" : $("#invOnlyToggle").checked ? "invidious" : "auto"
+        apiMode: $("#pipedOnlyToggle").checked ? "piped" : $("#invOnlyToggle").checked ? "invidious" : "auto",
+        ...getNewsAgeSettings()
       };
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
       applySettings(settings);
@@ -2177,11 +2248,86 @@
       return Date.parse(String(raw));
     }
 
+    const MIN_NEWS_AGE_MS = 60 * 60 * 1000;
+    const MAX_NEWS_AGE_MS = 5 * 365.25 * 24 * 60 * 60 * 1000;
+    function newsAgeToMs(value, unit) {
+      const factors = { hour: 60 * 60 * 1000, day: 24 * 60 * 60 * 1000, month: 30.4375 * 24 * 60 * 60 * 1000, year: 365.25 * 24 * 60 * 60 * 1000 };
+      return Math.min(MAX_NEWS_AGE_MS, Math.max(MIN_NEWS_AGE_MS, (Number(value) || 1) * (factors[unit] || factors.day)));
+    }
+    function getNewsAgeSettings() {
+      const input = $("#newsAgeValue");
+      const unitInput = $("#newsAgeUnit");
+      let value = Math.max(1, Number(input?.value) || 1);
+      let unit = unitInput?.value || "day";
+      const unitMax = { hour: MAX_NEWS_AGE_MS / 3600000, day: MAX_NEWS_AGE_MS / 86400000, month: MAX_NEWS_AGE_MS / (30.4375 * 86400000), year: 5 };
+      value = Math.floor(Math.min(unitMax[unit] || unitMax.day, value));
+      if (input) input.value = String(value);
+      return { newsAgeValue: value, newsAgeUnit: unit };
+    }
+    function getNewsAgeMs(settings = readSettings()) {
+      return newsAgeToMs(settings.newsAgeValue ?? 30, settings.newsAgeUnit || "day");
+    }
     function isRecentNewsItem(item) {
       const now = Date.now();
       const publishedAt = publishedAtMs(item);
-      const thirtyDays = 30 * 24 * 60 * 60 * 1000;
-      return Number.isFinite(publishedAt) && publishedAt <= now && now - publishedAt <= thirtyDays;
+      return Number.isFinite(publishedAt) && publishedAt <= now && now - publishedAt <= getNewsAgeMs();
+    }
+    const GOOGLE_NEWS_RSS = "https://news.google.com/rss?hl=ja&gl=JP&ceid=JP:ja";
+    let googleNewsItems = [];
+    let newsTickerTimer = null;
+    let newsTickerIndex = 0;
+    function setNewsTickerVisible(visible) {
+      const ticker = $("#newsFeedTicker");
+      ticker.classList.toggle("hidden", !visible);
+      if (!visible && newsTickerTimer) { clearInterval(newsTickerTimer); newsTickerTimer = null; }
+      if (visible) loadGoogleNewsFeed();
+    }
+    function renderNewsTickerItem() {
+      const ticker = $("#newsFeedTicker");
+      const text = $("#newsFeedTickerText");
+      if (!googleNewsItems.length) return;
+      const item = googleNewsItems[newsTickerIndex % googleNewsItems.length];
+      newsTickerIndex += 1;
+      ticker.href = item.link;
+      ticker.title = item.title;
+      text.style.animation = "none";
+      text.textContent = item.title;
+      void text.offsetWidth;
+      text.style.animation = "";
+    }
+    async function loadGoogleNewsFeed() {
+      const ticker = $("#newsFeedTicker");
+      if (ticker.classList.contains("hidden")) return;
+      $("#newsFeedTickerText").textContent = "Googleニュースを読み込み中...";
+      const rssUrl = GOOGLE_NEWS_RSS;
+      try {
+        let parsedItems = [];
+        try {
+          const response = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`, { cache: "no-store" });
+          if (!response.ok) throw new Error("RSS変換に失敗");
+          const json = await response.json();
+          parsedItems = (json.items || []).map((item) => ({ title: item.title || "タイトルなし", link: item.link || rssUrl, publishedAt: Date.parse(item.pubDate || "") }));
+        } catch (_) {
+          const response = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(rssUrl)}`, { cache: "no-store" });
+          if (!response.ok) throw new Error("RSS取得に失敗");
+          const xml = new DOMParser().parseFromString(await response.text(), "text/xml");
+          parsedItems = [...xml.querySelectorAll("item")].map((item) => ({ title: item.querySelector("title")?.textContent?.trim() || "タイトルなし", link: item.querySelector("link")?.textContent?.trim() || rssUrl, publishedAt: Date.parse(item.querySelector("pubDate")?.textContent || "") }));
+        }
+        const cutoff = Date.now() - getNewsAgeMs();
+        googleNewsItems = parsedItems.filter((item) => Number.isFinite(item.publishedAt) && item.publishedAt <= Date.now() && item.publishedAt >= cutoff && item.link).slice(0, 100);
+        if (!googleNewsItems.length) {
+          $("#newsFeedTickerText").textContent = "指定期間内のGoogleニュースはありません";
+          ticker.href = rssUrl;
+        } else {
+          newsTickerIndex = 0;
+          renderNewsTickerItem();
+          if (newsTickerTimer) clearInterval(newsTickerTimer);
+          newsTickerTimer = setInterval(renderNewsTickerItem, 7000);
+        }
+      } catch (_) {
+        $("#newsFeedTickerText").textContent = "Googleニュースを取得できません。クリックしてRSSを開く";
+        ticker.href = rssUrl;
+      }
     }
 
     function thumbnail(item) {
@@ -2582,7 +2728,7 @@
           }
           state.lastItems = recentItems;
           state.homePage = loadedPage;
-          $("#pageSubheading").textContent = "投稿日時が直近30日以内の動画のみ表示";
+          $("#pageSubheading").textContent = `投稿日時が直近${formatNewsAgeLabel()}の動画のみ表示`;
         } else {
           state.lastItems = uniqueVideoItems(items);
         }
@@ -2602,7 +2748,9 @@
               state.recommendationViewActive = true;
               state.lastItems = recommendations;
               $("#pageHeading").textContent = "おすすめ＋";
-              $("#pageSubheading").textContent = queries.lengt
+              $("#pageSubheading").textContent = queries.length
+                ? `履歴に関連する未視聴動画を${queries.length}種類の検索語から表示`
+                : "視聴・検索履歴をもとにした未視聴動画";
             }
           }
         }
@@ -2617,7 +2765,13 @@
       }
     }
 
-    function loadNews() {
+    function formatNewsAgeLabel() {
+      const settings = readSettings();
+      const unitLabels = { hour: "時間", day: "日", month: "か月", year: "年" };
+      return `${settings.newsAgeValue ?? 30}${unitLabels[settings.newsAgeUnit || "day"] || "日"}以内`;
+    }
+    function loadNews(fromSidebar = false) {
+      setNewsTickerVisible(fromSidebar);
       return loadHome("search?q=%E3%83%8B%E3%83%A5%E3%83%BC%E3%82%B9&type=video&region=JP", "ニュース", "#news", true);
     }
 
@@ -3959,6 +4113,7 @@
 
     function routeFromHash() {
       const hash = location.hash;
+      if (hash !== "#news") setNewsTickerVisible(false);
       const watch = hash.match(/^#watch=(.+)$/);
       const searchMatch = hash.match(/^#search=(.+)$/);
       const channelMatch = hash.match(/^#channel=([^&]+)(?:&tab=([^&]+))?$/);
@@ -4178,7 +4333,16 @@
     $("#invOnlyToggle").addEventListener("change", () => {
       if ($("#invOnlyToggle").checked) $("#pipedOnlyToggle").checked = false;
     });
-    $("#saveSettingsButton").addEventListener("click", saveSettings);
+    $("#newsAgeUnit").addEventListener("change", () => {
+      const maxes = { hour: 43830, day: 1826, month: 60, year: 5 };
+      $("#newsAgeValue").max = String(maxes[$("#newsAgeUnit").value] || 1826);
+      if (Number($("#newsAgeValue").value) > Number($("#newsAgeValue").max)) $("#newsAgeValue").value = $("#newsAgeValue").max;
+    });
+    $("#saveSettingsButton").addEventListener("click", () => {
+      saveSettings();
+      if (!$("#newsFeedTicker").classList.contains("hidden")) loadGoogleNewsFeed();
+      if (state.route === "news") loadHome("search?q=%E3%83%8B%E3%83%A5%E3%83%BC%E3%82%B9&type=video&region=JP", "ニュース", "#news", true);
+    });
     $("#resetSettingsButton").addEventListener("click", () => {
       $("#darkModeToggle").checked = false;
       $("#personalizedRecommendationsToggle").checked = false;
@@ -4186,6 +4350,8 @@
       $("#autoPlayToggle").checked = false;
       $("#pipedOnlyToggle").checked = false;
       $("#invOnlyToggle").checked = false;
+      $("#newsAgeValue").value = "30";
+      $("#newsAgeUnit").value = "day";
       $("#tabPreset").value = "classroom";
       $("#customTabTitle").value = TAB_PRESETS.classroom.title;
       $("#customFaviconUrl").value = TAB_PRESETS.classroom.favicon;
@@ -4202,10 +4368,11 @@
       document.querySelectorAll(".nav-item").forEach((nav) => nav.classList.remove("active"));
       item.classList.add("active");
       const route = item.dataset.route;
+      if (route !== "news") setNewsTickerVisible(false);
       if (route === "history") return loadHistory();
       if (route === "playlists") return loadPlaylists();
       if (route === "trending") return loadHome("trending?region=JP", "急上昇");
-      if (route === "news") return loadNews();
+      if (route === "news") return loadNews(true);
       if (route === "subscriptions") return loadSubscriptions();
       return loadHome();
     }));
