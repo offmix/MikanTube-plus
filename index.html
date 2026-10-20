@@ -1356,6 +1356,7 @@
       currentStream: null,
       currentAudioStream: null,
       downloadStream: null,
+      downloadAudioStream: null,
       playbackRetry: null,
       lastApiProvider: null,
       playbackRequested: false,
@@ -3088,6 +3089,7 @@
       state.currentStream = null;
       state.currentAudioStream = null;
       state.downloadStream = null;
+      state.downloadAudioStream = null;
       state.playbackRetry = null;
       state.lastApiProvider = null;
       state.playbackRequested = false;
@@ -3342,16 +3344,44 @@
 
     async function downloadCurrentVideo() {
       const button = $("#downloadButton");
-      const stream = state.downloadStream;
-      if (!stream?.url) return showToast("音声付きMP4/WEBMを取得できませんでした");
       const title = String(state.currentVideo?.title || "mikanTube-video")
         .replace(/[\\/:*?"<>|]/g, "_")
         .trim()
         .slice(0, 80) || "mikanTube-video";
-      const streamFormat = String(stream.container || stream.type || "").toLowerCase();
-      const extension = streamFormat.includes("webp") ? "webp" : streamFormat.includes("webm") ? "webm" : "mp4";
+      const videoStream = (state.currentStreams || []).find((stream) =>
+        stream?._progressive && stream.url && qualityNumber(stream) === 360
+        && /video\/(mp4|webm)/i.test(String(stream.type || ""))
+      ) || null;
+      const audioStream = state.downloadAudioStream || state.currentAudioStream;
+      const choice = window.prompt("ダウンロード形式を選択してください\n1：360p 音声付き動画\n2：MP3音声", "1");
+      if (choice === null) return;
+      let stream = null;
+      let extension = "";
+      let label = "";
+      if (choice.trim() === "1") {
+        stream = videoStream;
+        if (!stream) return showToast("360pの音声付き動画は取得先にありません");
+        const format = String(stream.container || stream.type || "").toLowerCase();
+        extension = format.includes("webm") ? "webm" : "mp4";
+        label = "360p音声付き動画";
+      } else if (choice.trim() === "2") {
+        stream = audioStream;
+        if (!stream?.url) return showToast("音声データを取得できませんでした");
+        const format = String(stream.container || stream.type || "").toLowerCase();
+        // Most Invidious/Piped sources provide M4A or WebM audio, not MP3.
+        // Do not mislabel an unconverted audio stream as an MP3 file.
+        if (/audio\/mpeg|audio\/mp3/i.test(String(stream.type || "")) || format === "mp3") {
+          extension = "mp3";
+          label = "MP3音声";
+        } else {
+          return showToast("この取得先はMP3を提供していません。MP3変換機能は未対応です。");
+        }
+      } else {
+        return showToast("1 または 2 を選択してください");
+      }
       button.disabled = true;
-      button.querySelector("span").textContent = "準備中…";
+      const buttonText = button.querySelector("span");
+      buttonText.textContent = "準備中…";
       try {
         const response = await fetch(stream.url, { mode: "cors" });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -3364,19 +3394,13 @@
         link.click();
         link.remove();
         setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
-        showToast(`${streamQuality(stream)}の音声付き${extension.toUpperCase()}を保存しました`);
+        showToast(`${label}のダウンロードを開始しました`);
       } catch (_) {
-        const link = document.createElement("a");
-        link.href = stream.url;
-        link.download = `${title}.${extension}`;
-        link.rel = "noopener noreferrer";
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        showToast("音声付きファイルのダウンロードを開始しました");
+        window.open(stream.url, "_blank", "noopener,noreferrer");
+        showToast("直接ダウンロードを開きました。保存できない場合は取得先の制限をご確認ください。");
       } finally {
         button.disabled = false;
-        button.querySelector("span").textContent = "音声付きDL";
+        buttonText.textContent = "DL";
       }
     }
 
@@ -3481,6 +3505,7 @@
           state.currentPlaybackCandidates = candidates;
           state.currentAudioStream = getAudioStream(raw);
           state.downloadStream = getDownloadStream(streams);
+          state.downloadAudioStream = state.currentAudioStream;
           const fallbackStream = candidates.find((stream) =>
             stream?.url && !retry.triedStreamUrls.has(stream.url)
           );
@@ -3561,6 +3586,7 @@
       state.currentStream = null;
       state.currentAudioStream = null;
       state.downloadStream = null;
+      state.downloadAudioStream = null;
       setPlayerLoading(true);
       $("#sideTitle").textContent = state.watchPlaylistId ? "再生リスト" : "次の動画";
       $("#nextList").className = state.watchPlaylistId ? "side-list playlist-side" : "side-list";
@@ -3576,6 +3602,7 @@
         const playbackCandidates = getQualityStreams(raw, true);
         state.currentAudioStream = getAudioStream(raw);
         state.downloadStream = getDownloadStream(streams);
+        state.downloadAudioStream = state.currentAudioStream;
         const progressive = streams.filter((candidate) => candidate._progressive);
         const stream = progressive.find((candidate) => qualityNumber(candidate) <= 720 && qualityNumber(candidate) > 0)
           || progressive[0]
