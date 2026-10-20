@@ -1238,6 +1238,30 @@
         </div>
       </div>
       <div class="settings-group">
+        <div class="settings-row">
+          <div>
+            <span class="settings-label">Pipedだけを使用</span>
+            <p class="settings-help">動画の検索・情報取得をPiped APIだけで行います。Pipedが使えない場合、Invidiousへは切り替えません。</p>
+          </div>
+          <label class="switch" aria-label="Pipedだけを使用">
+            <input id="pipedOnlyToggle" type="checkbox">
+            <span class="switch-track"></span>
+          </label>
+        </div>
+      </div>
+      <div class="settings-group">
+        <div class="settings-row">
+          <div>
+            <span class="settings-label">Invだけ使用</span>
+            <p class="settings-help">Invidious APIだけを使用します。Piped APIは試行しません。</p>
+          </div>
+          <label class="switch" aria-label="Invだけ使用">
+            <input id="invOnlyToggle" type="checkbox">
+            <span class="switch-track"></span>
+          </label>
+        </div>
+      </div>
+      <div class="settings-group">
         <label class="settings-label" for="tabPreset">ブラウザタブのプリセット</label>
         <p class="settings-help">タイトルとファビコンをタブに反映します。</p>
         <select class="settings-select" id="tabPreset">
@@ -1340,16 +1364,21 @@
     ];
     // Piped uses a different API contract, so these stay in a separate pool.
     const PIPED_INSTANCES = [
-      "https://pipedapi.in.projectsegfau.lt",
-      "https://pipedapi.us.projectsegfau.lt",
-      "https://pipedapi.eu.projectsegfau.lt",
-      "https://pipedapi.jp.projectsegfau.lt",
+      "https://pipedapi.kavin.rocks",
+      "https://pipedapi.leptons.xyz",
+      "https://pipedapi.nosebs.ru",
+      "https://pipedapi-libre.kavin.rocks",
+      "https://piped-api.privacy.com.de",
       "https://pipedapi.adminforge.de",
-      "https://pipedapi.garudalinux.org",
-      "https://pipedapi.ethibox.fr",
-      "https://pipedapi.nerdvpn.de",
-      "https://piped-api.r4fo.com",
-      "https://pipedapi.phoenixcollective.net"
+      "https://api.piped.yt",
+      "https://pipedapi.drqns.space",
+      "https://pipedapi.owo.si",
+      "https://pipedapi.ducks.party",
+      "https://piped-api.codespace.cz",
+      "https://pipedapi.reallyaweso.me",
+      "https://api.piped.private.coffeе",
+      "https://pipedapi.darkness.services",
+      "https://pipedapi.orangenet.cc"
     ];
     const PIPED_SEARCH_PAGES = new Map();
     const PIPED_COMMENT_PAGES = new Map();
@@ -1456,9 +1485,9 @@
 
     function readSettings() {
       try {
-        return { theme: "light", tabPreset: "classroom", customTitle: "", customFavicon: "", personalizedRecommendations: false, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}") };
+        return { theme: "light", tabPreset: "classroom", customTitle: "", customFavicon: "", personalizedRecommendations: false, apiMode: "auto", ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}") };
       } catch (_) {
-        return { theme: "light", tabPreset: "classroom", customTitle: "", customFavicon: "", personalizedRecommendations: false };
+        return { theme: "light", tabPreset: "classroom", customTitle: "", customFavicon: "", personalizedRecommendations: false, apiMode: "auto" };
       }
     }
 
@@ -1477,6 +1506,8 @@
       $("#customTabTitle").value = settings.customTitle || "";
       $("#customFaviconUrl").value = settings.customFavicon || "";
       $("#personalizedRecommendationsToggle").checked = settings.personalizedRecommendations === true;
+      $("#pipedOnlyToggle").checked = settings.apiMode === "piped";
+      $("#invOnlyToggle").checked = settings.apiMode === "invidious";
       applyTabSettings(settings);
       document.querySelector('meta[name="theme-color"]').setAttribute("content", settings.theme === "dark" ? "#0f0f0f" : "#ffffff");
     }
@@ -1487,7 +1518,8 @@
         tabPreset: $("#tabPreset").value,
         customTitle: $("#customTabTitle").value,
         customFavicon: $("#customFaviconUrl").value,
-        personalizedRecommendations: $("#personalizedRecommendationsToggle").checked
+        personalizedRecommendations: $("#personalizedRecommendationsToggle").checked,
+        apiMode: $("#pipedOnlyToggle").checked ? "piped" : $("#invOnlyToggle").checked ? "invidious" : "auto"
       };
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
       applySettings(settings);
@@ -1963,7 +1995,17 @@
           return null;
         }
       };
-      if (options.preferPiped) {
+      const apiMode = readSettings().apiMode || "auto";
+      if (apiMode === "piped") {
+        const pipedResult = await tryPiped();
+        if (pipedResult) {
+          setStatus("", "Piped APIのみで接続");
+          return pipedResult.data;
+        }
+        setStatus("error", "Piped APIに接続できません");
+        throw new Error(errors.join(" / ") || "Pipedだけを使用する設定ですが、利用可能なPipedインスタンスがありません");
+      }
+      if (apiMode !== "invidious" && options.preferPiped) {
         const pipedResult = await tryPiped();
         if (pipedResult) {
           setStatus("", "Piped APIへ自動接続");
@@ -1992,7 +2034,7 @@
         const reasons = error.errors || [error];
         errors.push(...reasons.map((reason) => reason.message).filter(Boolean));
       }
-      if (!options.preferPiped) {
+      if (apiMode === "auto" && !options.preferPiped) {
         const pipedResult = await tryPiped();
         if (pipedResult) {
           setStatus("", "Piped APIへ自動接続");
@@ -2094,9 +2136,39 @@
     }
 
     function thumbnail(item) {
-      const direct = item.videoThumbnails?.find((image) => image.quality === "medium")?.url
-        || item.videoThumbnails?.[0]?.url;
-      return direct || `https://i.ytimg.com/vi/${encodeURIComponent(item.videoId)}/mqdefault.jpg`;
+      const thumbnails = Array.isArray(item.videoThumbnails) ? item.videoThumbnails : [];
+      const qualityRank = (image) => {
+        const q = String(image?.quality || image?.qualityLabel || "").toLowerCase();
+        if (/maxres|1080|hd720/.test(q)) return 5;
+        if (/high|sddefault|480/.test(q)) return 4;
+        if (/medium|mqdefault|360/.test(q)) return 3;
+        if (/default|small|low/.test(q)) return 1;
+        return 2;
+      };
+      const best = [...thumbnails].filter((image) => image?.url).sort((a, b) => qualityRank(b) - qualityRank(a))[0];
+      return best?.url || `https://i.ytimg.com/vi/${encodeURIComponent(item.videoId)}/maxresdefault.jpg`;
+    }
+
+    function handleThumbnailError(image) {
+      const videoId = image.closest("[data-video-id]")?.dataset.videoId || "";
+      if (!videoId) {
+        image.onerror = null;
+        image.src = "data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 160 90%22%3E%3Crect width=%22160%22 height=%2290%22 fill=%22%23d4d4d4%22/%3E%3C/svg%3E";
+        return;
+      }
+      const fallbacks = ["hqdefault", "sddefault", "mqdefault", "default"];
+      const current = image.dataset.thumbFallback || "maxresdefault";
+      const index = fallbacks.indexOf(current);
+      if (index < fallbacks.length) {
+        const next = fallbacks[index + 1];
+        image.dataset.thumbFallback = next || "done";
+        if (next) {
+          image.src = `https://i.ytimg.com/vi/${encodeURIComponent(videoId)}/${next}.jpg`;
+          return;
+        }
+      }
+      image.onerror = null;
+      image.src = "data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 160 90%22%3E%3Crect width=%22160%22 height=%2290%22 fill=%22%23d4d4d4%22/%3E%3Cpath d=%22M65 30v30l25-15z%22 fill=%22%23888%22/%3E%3C/svg%3E";
     }
 
     function renderSkeleton(count = 8) {
@@ -2117,7 +2189,7 @@
       return `
         <article class="video-card" data-video-id="${escapeHtml(item.videoId)}" tabindex="0" role="button" aria-label="${escapeHtml(item.title)}">
           <div class="thumb">
-            <img src="${escapeHtml(thumbnail(item))}" loading="lazy" alt="" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 160 90%22%3E%3Crect width=%22160%22 height=%2290%22 fill=%22%23d4d4d4%22/%3E%3C/svg%3E'">
+            <img src="${escapeHtml(thumbnail(item))}" loading="lazy" alt="" onerror="handleThumbnailError(this)">
             ${item.lengthSeconds ? `<span class="duration">${formatDuration(item.lengthSeconds)}</span>` : ""}
           </div>
           <div class="card-body">
@@ -4031,10 +4103,18 @@
       $("#customTabTitle").value = preset.title;
       $("#customFaviconUrl").value = preset.favicon;
     });
+    $("#pipedOnlyToggle").addEventListener("change", () => {
+      if ($("#pipedOnlyToggle").checked) $("#invOnlyToggle").checked = false;
+    });
+    $("#invOnlyToggle").addEventListener("change", () => {
+      if ($("#invOnlyToggle").checked) $("#pipedOnlyToggle").checked = false;
+    });
     $("#saveSettingsButton").addEventListener("click", saveSettings);
     $("#resetSettingsButton").addEventListener("click", () => {
       $("#darkModeToggle").checked = false;
       $("#personalizedRecommendationsToggle").checked = false;
+      $("#pipedOnlyToggle").checked = false;
+      $("#invOnlyToggle").checked = false;
       $("#tabPreset").value = "classroom";
       $("#customTabTitle").value = TAB_PRESETS.classroom.title;
       $("#customFaviconUrl").value = TAB_PRESETS.classroom.favicon;
