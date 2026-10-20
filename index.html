@@ -761,6 +761,15 @@
     .playlist-picker-list { display: grid; gap: 8px; margin: 16px 0; }
     .playlist-picker-list button { width: 100%; padding: 11px 13px; color: var(--text); background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; cursor: pointer; text-align: left; }
     .playlist-picker-list button:hover { background: var(--surface-3); }
+    .download-choice-list { display: grid; gap: 10px; margin-top: 16px; }
+    .download-choice-list button {
+      display: flex; flex-direction: column; align-items: flex-start; gap: 5px;
+      width: 100%; padding: 15px 16px; color: var(--text); text-align: left;
+      background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; cursor: pointer;
+    }
+    .download-choice-list button:hover { border-color: var(--accent); background: var(--surface-3); }
+    .download-choice-list strong { font-size: 15px; }
+    .download-choice-list small, .download-choice-note { color: var(--muted); font-size: 12px; line-height: 1.5; }
 
     .subscription-grid {
       display: grid;
@@ -1161,6 +1170,25 @@
         <input id="quickPlaylistNameInput" type="text" maxlength="80" placeholder="新しい再生リスト名" required>
         <button type="submit">作成して追加</button>
       </form>
+    </section>
+  </div>
+  <div class="settings-backdrop hidden" id="downloadPickerBackdrop" role="presentation">
+    <section class="settings-panel" role="dialog" aria-modal="true" aria-labelledby="downloadPickerTitle">
+      <div class="settings-header">
+        <h2 id="downloadPickerTitle">ダウンロード形式を選択</h2>
+        <button class="round-button" id="closeDownloadPickerButton" type="button" aria-label="閉じる"><svg class="icon"><use href="#i-x"></use></svg></button>
+      </div>
+      <div class="download-choice-list">
+        <button type="button" data-download-choice="video">
+          <strong>360p 音声付き動画</strong>
+          <small>映像と音声をまとめて保存</small>
+        </button>
+        <button type="button" data-download-choice="mp3">
+          <strong>MP3音声</strong>
+          <small>音声だけをMP3形式で保存（取得先がMP3を提供している必要があります）</small>
+        </button>
+      </div>
+      <p class="download-choice-note">動画や音声が取得先にない場合は、ダウンロードできないことがあります。</p>
     </section>
   </div>
   <div class="settings-backdrop hidden" id="settingsBackdrop" role="presentation">
@@ -3342,7 +3370,8 @@
       renderSidePanel();
     }
 
-    async function downloadCurrentVideo() {
+    async function downloadCurrentVideo(choice) {
+      $("#downloadPickerBackdrop").classList.add("hidden");
       const button = $("#downloadButton");
       const title = String(state.currentVideo?.title || "mikanTube-video")
         .replace(/[\\/:*?"<>|]/g, "_")
@@ -3353,18 +3382,16 @@
         && /video\/(mp4|webm)/i.test(String(stream.type || ""))
       ) || null;
       const audioStream = state.downloadAudioStream || state.currentAudioStream;
-      const choice = window.prompt("ダウンロード形式を選択してください\n1：360p 音声付き動画\n2：MP3音声", "1");
-      if (choice === null) return;
       let stream = null;
       let extension = "";
       let label = "";
-      if (choice.trim() === "1") {
+      if (choice === "video") {
         stream = videoStream;
         if (!stream) return showToast("360pの音声付き動画は取得先にありません");
         const format = String(stream.container || stream.type || "").toLowerCase();
         extension = format.includes("webm") ? "webm" : "mp4";
         label = "360p音声付き動画";
-      } else if (choice.trim() === "2") {
+      } else if (choice === "mp3") {
         stream = audioStream;
         if (!stream?.url) return showToast("音声データを取得できませんでした");
         const format = String(stream.container || stream.type || "").toLowerCase();
@@ -3377,7 +3404,7 @@
           return showToast("この取得先はMP3を提供していません。MP3変換機能は未対応です。");
         }
       } else {
-        return showToast("1 または 2 を選択してください");
+        return;
       }
       button.disabled = true;
       const buttonText = button.querySelector("span");
@@ -3870,7 +3897,17 @@
       });
     });
     $("#addToPlaylistButton").addEventListener("click", openPlaylistPicker);
-    $("#downloadButton").addEventListener("click", downloadCurrentVideo);
+    $("#downloadButton").addEventListener("click", () => {
+      if (!state.currentVideo) return;
+      $("#downloadPickerBackdrop").classList.remove("hidden");
+    });
+    $("#closeDownloadPickerButton").addEventListener("click", () => $("#downloadPickerBackdrop").classList.add("hidden"));
+    $("#downloadPickerBackdrop").addEventListener("click", (event) => {
+      if (event.target === $("#downloadPickerBackdrop")) $("#downloadPickerBackdrop").classList.add("hidden");
+    });
+    document.querySelectorAll("[data-download-choice]").forEach((button) => {
+      button.addEventListener("click", () => downloadCurrentVideo(button.dataset.downloadChoice));
+    });
     $("#likeButton").addEventListener("click", () => showToast("評価はこのブラウザ内では送信されません"));
     $("#qualitySelect").addEventListener("change", (event) => {
       const stream = state.currentStreams[Number(event.target.value)];
