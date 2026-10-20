@@ -561,7 +561,9 @@
       -webkit-box-orient: vertical;
       -webkit-line-clamp: 2;
     }
-    .card-meta { display: flex; flex-wrap: wrap; gap: 2px 4px; color: var(--muted); font-size: 12px; }
+    .card-body > div:last-child { min-width: 0; }
+    .card-meta { display: flex; flex-wrap: wrap; gap: 2px 4px; min-width: 0; color: var(--muted); font-size: 12px; }
+    .card-meta .channel-name { display: block; min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 0 1 auto; }
     .card-meta span:not(:last-child)::after { content: "・"; margin-left: 4px; }
 
     .skeleton { pointer-events: none; }
@@ -1123,7 +1125,7 @@
         </div>
         <div class="nav-section">
           <div class="nav-heading">ライブラリ</div>
-          <button class="nav-item" data-route="history" type="button"><svg class="icon"><use href="#i-history"></use></svg><span class="nav-label">履歴</span></button>
+          <button class="nav-item" data-route="history" type="button"><img class="icon history-nav-icon" src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQOgU9r0JLOHT82XNjztUmi-SkhAhvxaR0ZAaAXoglZd5QK9cw_TIWamHUk&amp;s=10" alt=""><span class="nav-label">履歴</span></button>
           <button class="nav-item" data-route="playlists" type="button"><svg class="icon"><use href="#i-library"></use></svg><span class="nav-label">再生リスト</span></button>
           <button class="nav-item" data-route="subscriptions" type="button"><svg class="icon"><use href="#i-users"></use></svg><span class="nav-label">登録チャンネル</span></button>
         </div>
@@ -2400,7 +2402,7 @@
             <div>
               <h3 class="card-title">${escapeHtml(item.title)}</h3>
               <div class="card-meta">
-                <span>${escapeHtml(item.author)}</span>
+                <span class="channel-name" title="${escapeHtml(item.author)}">${escapeHtml(item.author)}</span>
                 ${item.viewCount ? `<span>${formatCount(item.viewCount)} 回視聴</span>` : ""}
                 ${item.publishedText ? `<span>${escapeHtml(item.publishedText)}</span>` : ""}
               </div>
