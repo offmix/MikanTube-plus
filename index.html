@@ -327,8 +327,12 @@
       background: var(--surface-2);
       border-right: 1px solid var(--line);
       font-size: 11px;
-      font-weight: 800;
+      font-weight: 900;
       white-space: nowrap;
+      color: transparent;
+      background-image: linear-gradient(100deg, #ff3038 0%, #ff304f 42%, #2675ff 100%);
+      background-clip: text;
+      -webkit-background-clip: text;
     }
     .news-feed-ticker-track {
       position: absolute;
@@ -1164,7 +1168,7 @@
           <button class="chip" data-query="料理" type="button">料理</button>
           <button class="chip" data-query="テクノロジー" type="button">テクノロジー</button>
           <button class="chip" data-query="学習" type="button">学習</button>
-          <a class="news-feed-ticker hidden" id="newsFeedTicker" href="#" target="_blank" rel="noopener noreferrer" aria-label="Googleニュースフィード">
+          <a class="news-feed-ticker" id="newsFeedTicker" href="#" target="_blank" rel="noopener noreferrer" aria-label="Googleニュースフィード">
             <span class="news-feed-ticker-label">NEWS</span>
             <span class="news-feed-ticker-track"><span class="news-feed-ticker-text" id="newsFeedTickerText">Googleニュースを読み込み中...</span></span>
           </a>
@@ -2277,9 +2281,9 @@
     let newsTickerTimer = null;
     let newsTickerIndex = 0;
     function setNewsTickerVisible(visible) {
+      // ニュースフィードはどの画面でも常時表示。引数は既存呼び出しとの互換性のため残す。
       const ticker = $("#newsFeedTicker");
-      ticker.classList.toggle("hidden", !visible);
-      if (!visible && newsTickerTimer) { clearInterval(newsTickerTimer); newsTickerTimer = null; }
+      ticker.classList.remove("hidden");
       if (visible) loadGoogleNewsFeed();
     }
     function renderNewsTickerItem() {
@@ -4381,6 +4385,7 @@
     applySettings(readSettings());
     state.subscriptions = readSubscriptions();
     state.playlists = readPlaylists();
+    setNewsTickerVisible(true);
     routeFromHash();
   </script>
 </body>
