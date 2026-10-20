@@ -761,6 +761,20 @@
     .playlist-picker-list { display: grid; gap: 8px; margin: 16px 0; }
     .playlist-picker-list button { width: 100%; padding: 11px 13px; color: var(--text); background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; cursor: pointer; text-align: left; }
     .playlist-picker-list button:hover { background: var(--surface-3); }
+    .download-picker-dialog {
+      width: min(560px, calc(100% - 36px));
+      max-width: none;
+      max-height: calc(100vh - 36px);
+      padding: 0;
+      overflow: visible;
+      color: var(--text);
+      background: transparent;
+      border: 0;
+    }
+    .download-picker-dialog::backdrop { background: rgba(0, 0, 0, .62); }
+    .download-picker-dialog .settings-panel { width: 100%; box-sizing: border-box; }
+    .download-picker-dialog[open] { animation: download-picker-in .16s ease-out; }
+    @keyframes download-picker-in { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
     .download-choice-list { display: grid; gap: 10px; margin-top: 16px; }
     .download-choice-list button {
       display: flex; flex-direction: column; align-items: flex-start; gap: 5px;
@@ -1172,8 +1186,8 @@
       </form>
     </section>
   </div>
-  <div class="settings-backdrop hidden" id="downloadPickerBackdrop" role="presentation">
-    <section class="settings-panel" role="dialog" aria-modal="true" aria-labelledby="downloadPickerTitle">
+  <dialog class="download-picker-dialog" id="downloadPickerDialog" aria-labelledby="downloadPickerTitle">
+    <section class="settings-panel">
       <div class="settings-header">
         <h2 id="downloadPickerTitle">ダウンロード形式を選択</h2>
         <button class="round-button" id="closeDownloadPickerButton" type="button" aria-label="閉じる"><svg class="icon"><use href="#i-x"></use></svg></button>
@@ -1190,7 +1204,7 @@
       </div>
       <p class="download-choice-note">動画や音声が取得先にない場合は、ダウンロードできないことがあります。</p>
     </section>
-  </div>
+  </dialog>
   <div class="settings-backdrop hidden" id="settingsBackdrop" role="presentation">
     <section class="settings-panel" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
       <div class="settings-header">
@@ -3371,7 +3385,8 @@
     }
 
     async function downloadCurrentVideo(choice) {
-      $("#downloadPickerBackdrop").classList.add("hidden");
+      const picker = $("#downloadPickerDialog");
+      if (picker.open) picker.close();
       const button = $("#downloadButton");
       const title = String(state.currentVideo?.title || "mikanTube-video")
         .replace(/[\\/:*?"<>|]/g, "_")
@@ -3899,11 +3914,12 @@
     $("#addToPlaylistButton").addEventListener("click", openPlaylistPicker);
     $("#downloadButton").addEventListener("click", () => {
       if (!state.currentVideo) return;
-      $("#downloadPickerBackdrop").classList.remove("hidden");
+      const picker = $("#downloadPickerDialog");
+      if (!picker.open) picker.showModal();
     });
-    $("#closeDownloadPickerButton").addEventListener("click", () => $("#downloadPickerBackdrop").classList.add("hidden"));
-    $("#downloadPickerBackdrop").addEventListener("click", (event) => {
-      if (event.target === $("#downloadPickerBackdrop")) $("#downloadPickerBackdrop").classList.add("hidden");
+    $("#closeDownloadPickerButton").addEventListener("click", () => $("#downloadPickerDialog").close());
+    $("#downloadPickerDialog").addEventListener("click", (event) => {
+      if (event.target === $("#downloadPickerDialog")) $("#downloadPickerDialog").close();
     });
     document.querySelectorAll("[data-download-choice]").forEach((button) => {
       button.addEventListener("click", () => downloadCurrentVideo(button.dataset.downloadChoice));
