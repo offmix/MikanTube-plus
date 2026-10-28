@@ -1167,6 +1167,16 @@
       .music-player-bar { right: 5px; left: 5px; }
       .music-playback-controls { gap: 0; }
     }
+    .ad-slot {
+  display: flex;
+  justify-content: center;
+  max-width: 1520px;
+  margin: 8px auto 0;
+  padding: 0 28px 40px;
+  overflow: hidden;
+}
+.ad-slot:empty { display: none; }
+@media (max-width: 680px) { .ad-slot { padding: 0 12px 40px; } }
   </style>
 </head>
 <body>
@@ -1396,6 +1406,12 @@
       <section class="page hidden" id="messagePage">
         <div class="empty" id="messageContent"></div>
       </section>
+            <aside class="ad-slot" aria-label="広告">
+        <div class="admax-switch" data-admax-id="YOUR_ADMAX_ID" style="display:inline-block;"></div>
+        <script type="text/javascript">
+          (admaxads = window.admaxads || []).push({admax_id: "YOUR_ADMAX_ID", type: "switch"});
+        </script>
+      </aside>
     </main>
   </div>
   <div class="toast" id="toast" role="status"></div>
@@ -1553,6 +1569,7 @@
       </div>
     </div>
   </section>
+    <script type="text/javascript" src="https://adm.shinobi.jp/st/t.js" async></script>
   <script>
     "use strict";
 
