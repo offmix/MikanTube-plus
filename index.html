@@ -1167,16 +1167,6 @@
       .music-player-bar { right: 5px; left: 5px; }
       .music-playback-controls { gap: 0; }
     }
-    .ad-slot {
-  display: flex;
-  justify-content: center;
-  max-width: 1520px;
-  margin: 8px auto 0;
-  padding: 0 28px 40px;
-  overflow: hidden;
-}
-.ad-slot:empty { display: none; }
-@media (max-width: 680px) { .ad-slot { padding: 0 12px 40px; } }
   </style>
 </head>
 <body>
@@ -1406,12 +1396,6 @@
       <section class="page hidden" id="messagePage">
         <div class="empty" id="messageContent"></div>
       </section>
-            <aside class="ad-slot" aria-label="広告">
-        <div class="admax-switch" data-admax-id="YOUR_ADMAX_ID" style="display:inline-block;"></div>
-        <script type="text/javascript">
-          (admaxads = window.admaxads || []).push({admax_id: "YOUR_ADMAX_ID", type: "switch"});
-        </script>
-      </aside>
     </main>
   </div>
   <div class="toast" id="toast" role="status"></div>
@@ -1506,6 +1490,18 @@
       <div class="settings-group">
         <div class="settings-row">
           <div>
+            <span class="settings-label">みかんTube+APIを使用する</span>
+            <p class="settings-help">検索にみかんTube+APIを使用します。動画情報やコメントの取得先は変わりません。</p>
+          </div>
+          <label class="switch" aria-label="みかんTube+APIを使用する">
+            <input id="useMikanTubeApiToggle" type="checkbox">
+            <span class="switch-track"></span>
+          </label>
+        </div>
+      </div>
+      <div class="settings-group">
+        <div class="settings-row">
+          <div>
             <span class="settings-label">Invだけ使用</span>
             <p class="settings-help">Invidious APIだけを使用します。Piped APIは試行しません。</p>
           </div>
@@ -1569,7 +1565,6 @@
       </div>
     </div>
   </section>
-    <script type="text/javascript" src="https://adm.shinobi.jp/st/t.js" async></script>
   <script>
     "use strict";
 
@@ -1668,6 +1663,7 @@
     ];
     const PIPED_SEARCH_PAGES = new Map();
     const PIPED_COMMENT_PAGES = new Map();
+    const GAS_API = "https://script.google.com/macros/s/AKfycbz8rfsBRtnIN_sxMBIbmg2vq2nuEVf-Wa6aJWoDd21wM609inPo-T4A-40JgeHOhOOhhA/exec";
     const HEALTH_KEY = "mikan-tube-instance-health";
     const HISTORY_KEY = "mikan-tube-history";
     const MUSIC_HISTORY_KEY = "mikan-tube-music-history";
@@ -1708,6 +1704,8 @@
       channelAuthor: "",
       channelData: null,
       channelContinuation: "",
+      channelContinuationProvider: null,
+      channelSeenContinuations: new Set(),
       channelTab: "home",
       channelFilter: "",
       channelSort: "latest",
@@ -1738,13 +1736,21 @@
     }[char]));
     const icon = (name, className = "icon") => `<svg class="${className}" aria-hidden="true"><use href="#i-${name}"></use></svg>`;
 
-    function getHealthOrder() {
+    function getHealthOrder(preferredInstance = "") {
       try {
         const health = JSON.parse(localStorage.getItem(HEALTH_KEY) || "{}");
         const ranked = [...INSTANCES].sort((a, b) => (health[b] || 0) - (health[a] || 0));
-        return [PRIMARY_INSTANCE, ...ranked.filter((instance) => instance !== PRIMARY_INSTANCE)];
+        return [
+          ...(INSTANCES.includes(preferredInstance) ? [preferredInstance] : []),
+          ...(preferredInstance === PRIMARY_INSTANCE ? [] : [PRIMARY_INSTANCE]),
+          ...ranked.filter((instance) => instance !== PRIMARY_INSTANCE && instance !== preferredInstance)
+        ];
       } catch (_) {}
-      return [PRIMARY_INSTANCE, ...INSTANCES.filter((instance) => instance !== PRIMARY_INSTANCE)];
+      return [
+        ...(INSTANCES.includes(preferredInstance) ? [preferredInstance] : []),
+        ...(preferredInstance === PRIMARY_INSTANCE ? [] : [PRIMARY_INSTANCE]),
+        ...INSTANCES.filter((instance) => instance !== PRIMARY_INSTANCE && instance !== preferredInstance)
+      ];
     }
 
     function rememberInstance(instance) {
@@ -1776,9 +1782,9 @@
 
     function readSettings() {
       try {
-        return { theme: "light", tabPreset: "classroom", customTitle: "", customFavicon: "", personalizedRecommendations: false, autoPlay: false, apiMode: "auto", newsAgeValue: 30, newsAgeUnit: "day", ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}") };
+        return { theme: "light", tabPreset: "classroom", customTitle: "", customFavicon: "", personalizedRecommendations: false, autoPlay: false, apiMode: "auto", useMikanTubeApi: false, newsAgeValue: 30, newsAgeUnit: "day", ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}") };
       } catch (_) {
-        return { theme: "light", tabPreset: "classroom", customTitle: "", customFavicon: "", personalizedRecommendations: false, autoPlay: false, apiMode: "auto", newsAgeValue: 30, newsAgeUnit: "day" };
+        return { theme: "light", tabPreset: "classroom", customTitle: "", customFavicon: "", personalizedRecommendations: false, autoPlay: false, apiMode: "auto", useMikanTubeApi: false, newsAgeValue: 30, newsAgeUnit: "day" };
       }
     }
 
@@ -1800,6 +1806,7 @@
       $("#autoPlayToggle").checked = settings.autoPlay === true;
       $("#autoPlaySettingsToggle").checked = settings.autoPlay === true;
       $("#pipedOnlyToggle").checked = settings.apiMode === "piped";
+      $("#useMikanTubeApiToggle").checked = settings.useMikanTubeApi === true;
       $("#invOnlyToggle").checked = settings.apiMode === "invidious";
       $("#newsAgeValue").value = settings.newsAgeValue ?? 30;
       $("#newsAgeUnit").value = settings.newsAgeUnit || "day";
@@ -1818,6 +1825,7 @@
         personalizedRecommendations: $("#personalizedRecommendationsToggle").checked,
         autoPlay: $("#autoPlaySettingsToggle").checked,
         apiMode: $("#pipedOnlyToggle").checked ? "piped" : $("#invOnlyToggle").checked ? "invidious" : "auto",
+        useMikanTubeApi: $("#useMikanTubeApiToggle").checked,
         ...getNewsAgeSettings()
       };
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
@@ -2268,6 +2276,64 @@
       throw new Error(errors.slice(0, 4).join(" / ") || "Pipedインスタンスが応答しません");
     }
 
+    function normalizeMikanTubeVideo(entry) {
+      const video = entry?.video;
+      const videoId = String(video?.videoId || video?.id || "");
+      if (!videoId) return null;
+      const author = video.author || {};
+      const authorId = String(author.channelId || "");
+      const authorUrl = author.canonicalBaseUrl
+        ? new URL(author.canonicalBaseUrl, "https://www.youtube.com").href
+        : authorId ? `https://www.youtube.com/channel/${encodeURIComponent(authorId)}` : "";
+      const avatars = Array.isArray(author.avatar) ? author.avatar : [];
+      const avatarUrl = avatars.find((image) => image?.url)?.url || "";
+      const videoThumbnails = (Array.isArray(video.thumbnails) ? video.thumbnails : [])
+        .filter((image) => image?.url)
+        .map((image) => ({
+          quality: Number(image.width) >= 720 ? "high" : Number(image.width) >= 320 ? "medium" : "default",
+          url: image.url
+        }));
+      const viewCount = Number(video.stats?.views ?? video.stats?.viewCount ?? 0);
+      return {
+        videoId,
+        title: typeof video.title === "string" ? video.title : (video.title?.text || "タイトルなし"),
+        author: author.title || "チャンネル不明",
+        authorId,
+        authorUrl,
+        authorThumbnails: avatarUrl ? [{ url: avatarUrl }] : [],
+        type: video.isLiveNow ? "live" : "video",
+        viewCount: Number.isFinite(viewCount) ? viewCount : 0,
+        publishedText: typeof video.publishedTimeText === "string"
+          ? video.publishedTimeText
+          : (video.publishedTimeText?.text || ""),
+        lengthSeconds: Number(video.lengthSeconds || 0),
+        videoThumbnails,
+        description: typeof video.descriptionSnippet === "string" ? video.descriptionSnippet : "",
+        liveNow: video.isLiveNow === true
+      };
+    }
+
+    async function youtubeSearch(keyword, signal) {
+      const url = new URL(GAS_API);
+      url.searchParams.set("endpoint", "search");
+      url.searchParams.set("q", keyword);
+      url.searchParams.set("hl", "ja");
+      url.searchParams.set("gl", "JP");
+      const response = await fetch(url, {
+        signal,
+        headers: { "Accept": "application/json" }
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const payload = await response.json();
+      if (payload?.success === false || !Array.isArray(payload?.data?.contents)) {
+        throw new Error(payload?.message || payload?.error || "みかんTube+APIの応答形式が不正です");
+      }
+      return payload.data.contents
+        .filter((entry) => entry?.type === "video")
+        .map(normalizeMikanTubeVideo)
+        .filter(Boolean);
+    }
+
     async function api(path, options = {}) {
       const lane = options.lane || "main";
       state.abortControllers[lane]?.abort();
@@ -2278,6 +2344,29 @@
       const excludedProviders = options.excludedProviders instanceof Set ? options.excludedProviders : new Set();
       if (lane === "main") state.lastApiProvider = null;
       setStatus("busy", "接続中");
+      const searchRequest = new URL(path, "https://mikan-tube.invalid");
+      const searchPage = Number(searchRequest.searchParams.get("page") || 1);
+      const mikanTubeQuery = searchRequest.searchParams.get("q") || "";
+      if (readSettings().useMikanTubeApi === true
+        && !options.skipMikanTubeApi
+        && searchRequest.pathname === "/search"
+        && searchPage <= 1
+        && mikanTubeQuery) {
+        try {
+          const videos = await youtubeSearch(mikanTubeQuery, signal);
+          if (lane === "main") state.lastApiProvider = { kind: "mikanTubeApi", instance: "google-apps-script" };
+          setStatus("", "みかんTube+APIで接続");
+          return videos;
+        } catch (error) {
+          if (signal.aborted || error.name === "AbortError") {
+            const aborted = new Error("操作を中断しました");
+            aborted.name = "AbortError";
+            throw aborted;
+          }
+          setStatus("error", "みかんTube+APIに接続できません");
+          throw error;
+        }
+      }
       const tryPiped = async () => {
         try {
           const result = await fetchFromPiped(path, signal, excludedProviders);
@@ -2311,7 +2400,7 @@
           return pipedResult.data;
         }
       }
-      const instances = getHealthOrder()
+      const instances = getHealthOrder(options.preferredInstance || "")
         .slice(0, options.maxInstances || undefined)
         .filter((instance) => !excludedProviders.has(`invidious:${instance}`));
       try {
@@ -2720,12 +2809,30 @@
     async function fetchMoreHomePage() {
       if (state.route === "channel") {
         if (!state.channelId || !state.channelContinuation) return false;
-        const path = channelTabPath(state.channelId, state.channelTab, state.channelContinuation);
-        const data = await api(path);
+        const continuation = state.channelContinuation;
+        if (state.channelSeenContinuations.has(continuation)) {
+          state.channelContinuation = "";
+          return false;
+        }
+        state.channelSeenContinuations.add(continuation);
+        const path = channelTabPath(state.channelId, state.channelTab, continuation);
+        let data;
+        try {
+          data = await api(path, {
+            preferredInstance: state.channelContinuationProvider?.kind === "invidious"
+              ? state.channelContinuationProvider.instance
+              : ""
+          });
+        } catch (error) {
+          state.channelSeenContinuations.delete(continuation);
+          throw error;
+        }
+        state.channelContinuationProvider = state.lastApiProvider ? { ...state.lastApiProvider } : state.channelContinuationProvider;
         const items = Array.isArray(data) ? data : (data.videos || data.latestVideos || data.items || []);
         const before = state.homePool.length;
         addHomeToPool(channelItemsForTab(items, state.channelTab));
-        state.channelContinuation = data.continuation || "";
+        const nextContinuation = String(data.continuation || "");
+        state.channelContinuation = state.channelSeenContinuations.has(nextContinuation) ? "" : nextContinuation;
         return state.homePool.length > before;
       }
       const page = state.homePage + 1;
@@ -2752,7 +2859,19 @@
       $("#loadMoreButton").disabled = true;
       $("#loadMoreButton").textContent = "読み込み中…";
       try {
-        if (state.homePool.length < 20) await fetchMoreHomePage();
+        if (state.homePool.length < 20) {
+          if (state.route === "channel") {
+            let attempts = 0;
+            while (state.homePool.length < 20 && state.channelContinuation && attempts < 6) {
+              const before = state.homePool.length;
+              await fetchMoreHomePage();
+              attempts += 1;
+              if (state.homePool.length > before) break;
+            }
+          } else {
+            await fetchMoreHomePage();
+          }
+        }
         const batch = state.homePool.splice(0, 20);
         if (!batch.length) {
           $("#loadMoreWrap").classList.add("hidden");
@@ -2952,7 +3071,7 @@
       $("#videoGrid").className = "video-grid";
       renderSkeleton(20);
       try {
-        const data = await api(path);
+        const data = await api(path, newsMode ? { skipMikanTubeApi: true } : {});
         let items = Array.isArray(data) ? data : (data.videos || data.items || []);
         let loadedPage = 1;
         if (newsMode) {
@@ -3411,6 +3530,8 @@
       state.channelData = null;
       state.watchPlaylistId = null;
       state.channelContinuation = "";
+      state.channelContinuationProvider = null;
+      state.channelSeenContinuations = new Set();
       state.channelTab = channelTab;
       state.channelFilter = "";
       state.channelSort = "latest";
@@ -3434,11 +3555,43 @@
       try {
         const data = await api(state.lastPath);
         state.channelData = data;
-        const items = Array.isArray(data) ? data : (data.videos || data.latestVideos || data.items || []);
-        state.channelContinuation = data.continuation || "";
-        state.lastItems = channelItemsForTab(items, channelTab);
-        state.homeItems = state.lastItems.slice(0, 20);
-        state.homePool = state.lastItems.slice(20);
+        const firstPageItems = Array.isArray(data) ? data : (data.videos || data.latestVideos || data.items || []);
+        state.channelContinuation = String(data.continuation || "");
+        state.channelContinuationProvider = state.lastApiProvider ? { ...state.lastApiProvider } : null;
+        state.lastItems = channelItemsForTab(firstPageItems, channelTab);
+        let initialPages = 0;
+        while (channelTab !== "playlists" && state.lastItems.length < 40
+          && state.channelContinuation && initialPages < 8) {
+          const continuation = state.channelContinuation;
+          if (state.channelSeenContinuations.has(continuation)) {
+            state.channelContinuation = "";
+            break;
+          }
+          state.channelSeenContinuations.add(continuation);
+          try {
+            const nextData = await api(
+              channelTabPath(channelId, channelTab, continuation),
+              {
+                preferredInstance: state.channelContinuationProvider?.kind === "invidious"
+                  ? state.channelContinuationProvider.instance
+                  : ""
+              }
+            );
+            state.channelContinuationProvider = state.lastApiProvider ? { ...state.lastApiProvider } : state.channelContinuationProvider;
+            const nextItems = Array.isArray(nextData) ? nextData : (nextData.videos || nextData.latestVideos || nextData.items || []);
+            state.lastItems = channelItemsForTab([...state.lastItems, ...nextItems], channelTab);
+            const nextContinuation = String(nextData.continuation || "");
+            state.channelContinuation = state.channelSeenContinuations.has(nextContinuation) ? "" : nextContinuation;
+            initialPages += 1;
+          } catch (error) {
+            state.channelSeenContinuations.delete(continuation);
+            if (error.name === "AbortError") throw error;
+            showToast("追加の動画を取得できませんでした");
+            break;
+          }
+        }
+        state.homeItems = state.lastItems.slice(0, 40);
+        state.homePool = state.lastItems.slice(40);
         if (channelTab === "playlists") {
           renderChannelHeader(data);
           renderChannelPlaylists(data);
@@ -4703,6 +4856,17 @@
     });
     $("#loadMoreButton").addEventListener("click", loadMoreHome);
     $("#loadAllButton").addEventListener("click", loadAllChannelVideos);
+    if ("IntersectionObserver" in window) {
+      const channelLoadMoreObserver = new IntersectionObserver((entries) => {
+        if (entries.some((entry) => entry.isIntersecting)
+          && state.route === "channel"
+          && !state.homeLoading
+          && (state.homePool.length > 0 || state.channelContinuation)) {
+          loadMoreHome();
+        }
+      }, { rootMargin: "600px 0px" });
+      channelLoadMoreObserver.observe($("#loadMoreWrap"));
+    }
     $("#channelFilterInput").addEventListener("input", (event) => {
       if (state.route !== "channel") return;
       state.channelFilter = event.target.value;
@@ -4903,6 +5067,7 @@
       $("#autoPlaySettingsToggle").checked = false;
       $("#autoPlayToggle").checked = false;
       $("#pipedOnlyToggle").checked = false;
+      $("#useMikanTubeApiToggle").checked = false;
       $("#invOnlyToggle").checked = false;
       $("#newsAgeValue").value = "30";
       $("#newsAgeUnit").value = "day";
