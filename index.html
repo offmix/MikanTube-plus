@@ -1249,6 +1249,103 @@
       body.music-active::before { animation: none; }
     }
 
+    /* 強化パック：音の動きをよりはっきり見せるグラス演出 */
+    body.music-active::before {
+      inset: -24%;
+      opacity: calc(.28 + var(--music-energy) * .68);
+      background:
+        radial-gradient(ellipse at calc(12% + var(--music-bass) * 48%) calc(18% + var(--music-mid) * 42%),
+          hsla(calc(188 + var(--music-bass) * 125), 100%, 66%, .62), transparent 38%),
+        radial-gradient(ellipse at calc(88% - var(--music-mid) * 42%) calc(78% - var(--music-treble) * 38%),
+          hsla(calc(258 + var(--music-treble) * 105), 100%, 70%, .58), transparent 42%),
+        radial-gradient(ellipse at calc(48% + var(--music-treble) * 18%) 48%,
+          hsla(calc(24 + var(--music-bass) * 55), 100%, 65%, .28), transparent 48%);
+      filter: blur(calc(28px + var(--music-energy) * 54px)) saturate(calc(125% + var(--music-energy) * 100%));
+      transform: scale(calc(1 + var(--music-energy) * .14));
+    }
+    body.music-active .topbar,
+    body.music-active .sidebar,
+    body.music-active .music-filter-bar,
+    body.music-active .music-player-bar {
+      backdrop-filter: blur(calc(22px + var(--music-energy) * 42px)) saturate(calc(165% + var(--music-energy) * 145%)) brightness(calc(1.02 + var(--music-energy) * .22));
+      -webkit-backdrop-filter: blur(calc(22px + var(--music-energy) * 42px)) saturate(calc(165% + var(--music-energy) * 145%)) brightness(calc(1.02 + var(--music-energy) * .22));
+      border-color: hsla(calc(190 + var(--music-bass) * 125), 100%, 78%, calc(.20 + var(--music-energy) * .48));
+      box-shadow:
+        0 14px calc(32px + var(--music-energy) * 58px) hsla(calc(205 + var(--music-mid) * 100), 100%, 60%, calc(.10 + var(--music-energy) * .26)),
+        inset 0 1px 0 rgba(255,255,255, calc(.10 + var(--music-energy) * .22)),
+        0 0 calc(14px + var(--music-energy) * 42px) hsla(calc(185 + var(--music-bass) * 130), 100%, 70%, calc(.10 + var(--music-energy) * .34));
+    }
+    body.music-active .video-card {
+      backdrop-filter: blur(calc(14px + var(--music-energy) * 30px)) saturate(calc(145% + var(--music-energy) * 125%));
+      -webkit-backdrop-filter: blur(calc(14px + var(--music-energy) * 30px)) saturate(calc(145% + var(--music-energy) * 125%));
+      border-color: hsla(calc(195 + var(--music-mid) * 115), 100%, 78%, calc(.12 + var(--music-energy) * .34));
+      box-shadow: 0 10px calc(20px + var(--music-energy) * 42px) hsla(calc(205 + var(--music-mid) * 110), 100%, 65%, calc(.08 + var(--music-energy) * .24)), inset 0 1px 0 rgba(255,255,255, calc(.05 + var(--music-energy) * .14));
+    }
+    body.music-active .music-player-bar {
+      transform: translateY(calc(var(--music-energy) * -4px)) scale(calc(1 + var(--music-energy) * .014));
+    }
+    body.music-active .music-track-info img {
+      box-shadow: 0 0 calc(12px + var(--music-bass) * 48px) hsla(calc(185 + var(--music-bass) * 135), 100%, 70%, .88), 0 0 calc(4px + var(--music-mid) * 18px) rgba(255,255,255,.35);
+      transform: scale(calc(1 + var(--music-bass) * .11));
+    }
+    body.music-active .music-play-button {
+      box-shadow: 0 0 calc(12px + var(--music-energy) * 48px) hsla(calc(22 + var(--music-treble) * 115), 100%, 66%, calc(.30 + var(--music-energy) * .62)), inset 0 0 12px rgba(255,255,255,.20);
+      transform: scale(calc(1 + var(--music-energy) * .085));
+    }
+    body.music-playing .music-player-bar { will-change: transform, box-shadow; }
+    @media (prefers-reduced-motion: reduce) {
+      body.music-active .music-player-bar,
+      body.music-active .music-track-info img,
+      body.music-active .music-play-button { transition: none; }
+    }
+
+
+    /* 最終ブースト：最上部バーも明確なフロストガラスに */
+    body.music-active .topbar {
+      background: rgba(235, 246, 255, calc(.42 - var(--music-energy) * .10)) !important;
+      background-image: linear-gradient(115deg,
+        rgba(255,255,255,calc(.22 + var(--music-energy) * .18)),
+        rgba(110,190,255,calc(.08 + var(--music-mid) * .16)),
+        rgba(190,130,255,calc(.07 + var(--music-treble) * .14))) !important;
+      backdrop-filter: blur(calc(30px + var(--music-energy) * 48px)) saturate(calc(190% + var(--music-energy) * 170%)) brightness(calc(1.06 + var(--music-energy) * .18));
+      -webkit-backdrop-filter: blur(calc(30px + var(--music-energy) * 48px)) saturate(calc(190% + var(--music-energy) * 170%)) brightness(calc(1.06 + var(--music-energy) * .18));
+      border-bottom: 1px solid hsla(calc(190 + var(--music-bass) * 130), 100%, 82%, calc(.32 + var(--music-energy) * .48));
+      box-shadow: 0 10px calc(34px + var(--music-energy) * 62px) hsla(calc(205 + var(--music-mid) * 110), 100%, 62%, calc(.16 + var(--music-energy) * .30)),
+                  inset 0 -1px 0 rgba(255,255,255,.32),
+                  0 0 calc(18px + var(--music-energy) * 44px) hsla(calc(185 + var(--music-bass) * 135), 100%, 72%, calc(.12 + var(--music-energy) * .30));
+      transition: background-color .08s linear, border-color .08s linear, box-shadow .08s linear;
+    }
+    :root[data-theme="dark"] body.music-active .topbar {
+      background-color: rgba(10, 19, 34, calc(.48 - var(--music-energy) * .10)) !important;
+      background-image: linear-gradient(115deg,
+        rgba(255,255,255,calc(.12 + var(--music-energy) * .14)),
+        rgba(40,145,230,calc(.10 + var(--music-mid) * .18)),
+        rgba(150,85,230,calc(.09 + var(--music-treble) * .16))) !important;
+    }
+    body.music-active::before {
+      inset: -30%;
+      opacity: calc(.36 + var(--music-energy) * .62);
+      filter: blur(calc(24px + var(--music-energy) * 62px)) saturate(calc(150% + var(--music-energy) * 140%));
+      transform: scale(calc(1 + var(--music-energy) * .19));
+    }
+    body.music-active .sidebar,
+    body.music-active .music-filter-bar,
+    body.music-active .music-player-bar {
+      background-color: rgba(120, 165, 210, calc(.075 + var(--music-energy) * .075));
+      backdrop-filter: blur(calc(28px + var(--music-energy) * 48px)) saturate(calc(185% + var(--music-energy) * 155%));
+      -webkit-backdrop-filter: blur(calc(28px + var(--music-energy) * 48px)) saturate(calc(185% + var(--music-energy) * 155%));
+    }
+    body.music-active .video-card {
+      box-shadow: 0 12px calc(24px + var(--music-energy) * 48px) hsla(calc(195 + var(--music-mid) * 120), 100%, 65%, calc(.12 + var(--music-energy) * .30)),
+                  inset 0 1px 0 rgba(255,255,255,calc(.08 + var(--music-energy) * .18));
+    }
+    body.music-active .music-track-info img {
+      filter: saturate(calc(115% + var(--music-bass) * 65%)) brightness(calc(1 + var(--music-mid) * .12));
+    }
+    @media (prefers-reduced-motion: reduce) {
+      body.music-active .topbar { transition: none; }
+    }
+
   </style>
 </head>
 <body>
@@ -3013,10 +3110,11 @@
           for (let i = start; i < end; i++) total += musicAnalyserData[i] / 255;
           return total / (end - start);
         };
-        const bass = Math.min(1, band(0, .08) * 1.9);
-        const mid = Math.min(1, band(.08, .42) * 2.0);
-        const treble = Math.min(1, band(.42, 1) * 2.2);
-        const energy = Math.min(1, bass * .48 + mid * .34 + treble * .18);
+        const bass = Math.min(1, band(0, .08) * 2.75);
+        const mid = Math.min(1, band(.08, .42) * 2.65);
+        const treble = Math.min(1, band(.42, 1) * 2.8);
+        // 音量が小さめの曲でも反応が見えるよう、帯域ごとの動きを少し強調
+        const energy = Math.min(1, bass * .55 + mid * .30 + treble * .15);
         const root = document.body.style;
         root.setProperty("--music-bass", bass.toFixed(3));
         root.setProperty("--music-mid", mid.toFixed(3));
