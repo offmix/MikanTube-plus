@@ -425,6 +425,19 @@
       padding: 0 22px;
       border-top: 1px solid var(--line);
     }
+    .community-post-grid { display: grid; gap: 12px; padding: 0 22px; }
+    .community-post {
+      padding: 16px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+    }
+    .community-post-header { display: flex; align-items: center; gap: 10px; }
+    .community-post-avatar { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; }
+    .community-post-author { min-width: 0; font-size: 13px; font-weight: 650; }
+    .community-post-time { color: var(--muted); font-size: 12px; }
+    .community-post-text { margin: 12px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.6; }
+    .community-post-stats { display: flex; gap: 14px; margin-top: 12px; color: var(--muted); font-size: 12px; }
     .channel-dashboard {
       display: grid;
       gap: 14px;
@@ -1263,6 +1276,7 @@
             <button class="channel-tab" data-channel-tab="shorts" type="button" aria-selected="false">ショート</button>
             <button class="channel-tab" data-channel-tab="live" type="button" aria-selected="false">ライブ</button>
             <button class="channel-tab" data-channel-tab="playlists" type="button" aria-selected="false">再生リスト</button>
+            <button class="channel-tab hidden" id="channelCommunityTab" data-channel-tab="community" type="button" aria-selected="false">コミュニティ</button>
           </nav>
            <section class="channel-dashboard hidden" id="channelDashboard" aria-label="チャンネル概要">
              <div class="channel-stat-grid" id="channelStatGrid"></div>
@@ -1491,7 +1505,7 @@
         <div class="settings-row">
           <div>
             <span class="settings-label">みかんTube+APIを使用する</span>
-            <p class="settings-help">検索にみかんTube+APIを使用します。動画情報やコメントの取得先は変わりません。</p>
+            <p class="settings-help">検索、動画・チャンネル情報などの取得に使用します。再生ストリームは従来のAPIから取得します。</p>
           </div>
           <label class="switch" aria-label="みかんTube+APIを使用する">
             <input id="useMikanTubeApiToggle" type="checkbox">
@@ -1663,6 +1677,7 @@
     ];
     const PIPED_SEARCH_PAGES = new Map();
     const PIPED_COMMENT_PAGES = new Map();
+    const MIKANTUBE_CURSORS = new Map();
     const GAS_API = "https://script.google.com/macros/s/AKfycbz8rfsBRtnIN_sxMBIbmg2vq2nuEVf-Wa6aJWoDd21wM609inPo-T4A-40JgeHOhOOhhA/exec";
     const HEALTH_KEY = "mikan-tube-instance-health";
     const HISTORY_KEY = "mikan-tube-history";
@@ -1709,6 +1724,11 @@
       channelTab: "home",
       channelFilter: "",
       channelSort: "latest",
+      channelBaseItems: [],
+      channelBaseContinuation: "",
+      channelBaseContinuationProvider: null,
+      channelBaseSeenContinuations: new Set(),
+      channelSearchActive: false,
       currentVideo: null,
       currentStreams: [],
       currentPlaybackCandidates: [],
@@ -1727,9 +1747,12 @@
       abortControllers: {},
       playbackGeneration: 0,
       commentsGeneration: 0,
-      commentContinuation: ""
+      commentContinuation: "",
+      commentContinuationProvider: null
     };
 
+    let channelSearchTimer = null;
+    let channelSearchGeneration = 0;
     const $ = (selector) => document.querySelector(selector);
     const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
       "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
@@ -1808,6 +1831,7 @@
       $("#pipedOnlyToggle").checked = settings.apiMode === "piped";
       $("#useMikanTubeApiToggle").checked = settings.useMikanTubeApi === true;
       $("#invOnlyToggle").checked = settings.apiMode === "invidious";
+      $("#channelCommunityTab").classList.toggle("hidden", settings.useMikanTubeApi !== true);
       $("#newsAgeValue").value = settings.newsAgeValue ?? 30;
       $("#newsAgeUnit").value = settings.newsAgeUnit || "day";
       const newsAgeMaxes = { hour: 43830, day: 1826, month: 60, year: 5 };
@@ -2277,10 +2301,11 @@
     }
 
     function normalizeMikanTubeVideo(entry) {
-      const video = entry?.video;
-      const videoId = String(video?.videoId || video?.id || "");
+      const video = entry?.video || entry;
+      const videoId = String(video?.videoId || video?.video_id || video?.id || "");
       if (!videoId) return null;
-      const author = video.author || {};
+      const rawAuthor = video.author || {};
+      const author = rawAuthor && typeof rawAuthor === "object" ? rawAuthor : {};
       const authorId = String(author.channelId || "");
       const authorUrl = author.canonicalBaseUrl
         ? new URL(author.canonicalBaseUrl, "https://www.youtube.com").href
@@ -2293,45 +2318,411 @@
           quality: Number(image.width) >= 720 ? "high" : Number(image.width) >= 320 ? "medium" : "default",
           url: image.url
         }));
-      const viewCount = Number(video.stats?.views ?? video.stats?.viewCount ?? 0);
+      const viewCount = Number(video.stats?.views ?? video.stats?.viewCount ?? video.viewCount ?? video.views ?? 0);
+      const title = typeof video.title === "string"
+        ? video.title
+        : Array.isArray(video.title?.runs)
+          ? video.title.runs.map((run) => run?.text || "").join("")
+          : (video.title?.text || "タイトルなし");
+      const published = video.publishedTimestamp ?? video.publishedDateTime ?? video.publishedDate ?? null;
       return {
         videoId,
-        title: typeof video.title === "string" ? video.title : (video.title?.text || "タイトルなし"),
-        author: author.title || "チャンネル不明",
+        title,
+        author: (typeof rawAuthor === "string" ? rawAuthor : author.title) || video.authorName || "チャンネル不明",
         authorId,
         authorUrl,
         authorThumbnails: avatarUrl ? [{ url: avatarUrl }] : [],
-        type: video.isLiveNow ? "live" : "video",
+        type: video.isLiveNow || video.isLiveContent ? "live" : (video.type || "video"),
         viewCount: Number.isFinite(viewCount) ? viewCount : 0,
         publishedText: typeof video.publishedTimeText === "string"
           ? video.publishedTimeText
           : (video.publishedTimeText?.text || ""),
+        published,
         lengthSeconds: Number(video.lengthSeconds || 0),
         videoThumbnails,
-        description: typeof video.descriptionSnippet === "string" ? video.descriptionSnippet : "",
-        liveNow: video.isLiveNow === true
+        description: typeof video.description === "string"
+          ? video.description
+          : typeof video.descriptionSnippet === "string"
+            ? video.descriptionSnippet
+            : "",
+        liveNow: video.isLiveNow === true || video.isLiveContent === true
       };
     }
 
-    async function youtubeSearch(keyword, signal) {
+    function normalizeMikanTubeVideoList(data) {
+      const entries = Array.isArray(data)
+        ? data
+        : (data?.contents || data?.videos || data?.items || data?.relatedContents || []);
+      const videos = entries.map(normalizeMikanTubeVideo).filter(Boolean);
+      return {
+        ...(Array.isArray(data) ? {} : data),
+        videos,
+        items: videos,
+        continuation: data?.cursorNext || data?.continuation || data?.nextpage || ""
+      };
+    }
+
+    function normalizeMikanTubeChannel(data) {
+      const stats = data?.stats || {};
+      const channelId = String(data?.channelId || data?.id || "");
+      const authorUrl = data?.canonicalBaseUrl
+        ? new URL(data.canonicalBaseUrl, "https://www.youtube.com").href
+        : channelId ? `https://www.youtube.com/channel/${encodeURIComponent(channelId)}` : "";
+      return {
+        ...data,
+        author: data?.title || data?.author || "チャンネル不明",
+        authorId: channelId,
+        authorUrl,
+        authorThumbnails: data?.avatar || data?.authorThumbnails || [],
+        authorBanners: data?.banner || data?.authorBanners || [],
+        subCount: Number(stats.subscribers ?? data?.subCount ?? data?.subscriberCount ?? 0),
+        videoCount: Number(stats.videos ?? data?.videoCount ?? data?.videosCount ?? 0),
+        description: data?.description || data?.descriptionHtml || ""
+      };
+    }
+
+    function normalizeMikanTubeComment(comment) {
+      const author = comment?.author || {};
+      const avatars = Array.isArray(author.avatar) ? author.avatar : [];
+      return {
+        author: (typeof author === "string" ? author : author.title) || "匿名",
+        authorThumbnail: author.avatarThumbnailUrl || avatars.at(-1)?.url || "",
+        content: typeof comment?.content === "string" ? comment.content : (comment?.content?.text || ""),
+        publishedText: comment?.publishedTimeText || "",
+        likeCount: Number(comment?.stats?.votes ?? comment?.stats?.likes ?? comment?.likeCount ?? 0),
+        isPinned: comment?.isPinned === true || comment?.pinned === true,
+        replies: { replyCount: Number(comment?.stats?.replies ?? comment?.replyCount ?? 0) }
+      };
+    }
+
+    function normalizeMikanTubePlaylist(entry) {
+      const playlist = entry?.playlist || entry || {};
+      const thumbnails = playlist.thumbnails || playlist.playlistThumbnails || [];
+      const thumbnail = playlist.thumbnail || playlist.playlistThumbnail
+        || (Array.isArray(thumbnails) ? thumbnails.at(-1)?.url || thumbnails.at(-1) : "");
+      return {
+        ...playlist,
+        playlistId: playlist.playlistId || playlist.id || playlist.listId || "",
+        title: playlist.title || playlist.name || "再生リスト",
+        videoCount: playlist.videoCount ?? playlist.stats?.videos ?? playlist.videos ?? "",
+        playlistThumbnails: Array.isArray(thumbnails) ? thumbnails : [],
+        playlistThumbnail: typeof thumbnail === "string" ? thumbnail : thumbnail?.url || ""
+      };
+    }
+
+    function normalizeMikanTubeResponse(endpoint, data) {
+      if (endpoint === "video/details") {
+        return {
+          ...data,
+          ...normalizeMikanTubeVideo(data),
+          published: data?.publishedTimestamp ?? data?.publishedDateTime ?? data?.publishedDate ?? null
+        };
+      }
+      if (endpoint === "channel/details") return normalizeMikanTubeChannel(data);
+      if (endpoint === "video/comments") {
+        return {
+          ...data,
+          comments: (Array.isArray(data?.comments) ? data.comments : []).map(normalizeMikanTubeComment),
+          continuation: data?.cursorNext || data?.continuation || ""
+        };
+      }
+      if (endpoint === "channel/playlists") {
+        const playlists = Array.isArray(data?.collections) ? data.collections : (data?.playlists || []);
+        return { ...data, playlists: playlists.map(normalizeMikanTubePlaylist).filter((item) => item.playlistId) };
+      }
+      if (endpoint === "channel/community") {
+        return {
+          ...data,
+          posts: (Array.isArray(data?.contents) ? data.contents : []).map((entry) => entry?.post || entry),
+          continuation: data?.cursorNext || data?.continuation || ""
+        };
+      }
+      if (endpoint === "playlist/details") {
+        return { ...data, ...normalizeMikanTubePlaylist(data) };
+      }
+      if (endpoint === "auto-complete") {
+        const results = Array.isArray(data?.results) ? data.results : [];
+        return {
+          ...data,
+          results: results.map((item) => typeof item === "string" ? item : (item?.text || item?.query || "")).filter(Boolean)
+        };
+      }
+      return normalizeMikanTubeVideoList(data);
+    }
+
+    function mikanTubeCursorKey(endpoint, params) {
+      const entries = Object.entries(params || {})
+        .filter(([key, value]) => key !== "page" && key !== "continuation" && value !== undefined && value !== null && value !== "")
+        .sort(([a], [b]) => a.localeCompare(b));
+      return `${endpoint}?${new URLSearchParams(entries).toString()}`;
+    }
+
+    async function fetchMikanTubeEndpoint(endpoint, params = {}, signal) {
+      const requestParams = { ...params };
+      const page = Number(requestParams.page || 1);
+      let continuation = requestParams.continuation || "";
+      delete requestParams.page;
+      delete requestParams.continuation;
+      const cursorKey = mikanTubeCursorKey(endpoint, requestParams);
+      if (!continuation && page > 1) continuation = MIKANTUBE_CURSORS.get(cursorKey) || "";
+      if (page > 1 && !continuation) throw new Error("GAS APIの次ページ情報がありません");
+
       const url = new URL(GAS_API);
-      url.searchParams.set("endpoint", "search");
-      url.searchParams.set("q", keyword);
-      url.searchParams.set("hl", "ja");
-      url.searchParams.set("gl", "JP");
+      url.searchParams.set("endpoint", endpoint);
+      url.searchParams.set("hl", requestParams.hl || "ja");
+      url.searchParams.set("gl", requestParams.gl || "JP");
+      for (const [key, value] of Object.entries(requestParams)) {
+        if (key !== "hl" && key !== "gl" && value !== undefined && value !== null && value !== "") {
+          url.searchParams.set(key, String(value));
+        }
+      }
+      if (continuation) url.searchParams.set("continuation", continuation);
       const response = await fetch(url, {
         signal,
         headers: { "Accept": "application/json" }
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const payload = await response.json();
-      if (payload?.success === false || !Array.isArray(payload?.data?.contents)) {
-        throw new Error(payload?.message || payload?.error || "みかんTube+APIの応答形式が不正です");
+      const message = payload?.message || payload?.data?.error?.message || payload?.data?.message || payload?.error?.message;
+      if (payload?.success === false || Number(payload?.status) >= 400 || payload?.data?.error) {
+        throw new Error(message || `GAS APIエラー (${payload?.status || "unknown"})`);
       }
-      return payload.data.contents
-        .filter((entry) => entry?.type === "video")
-        .map(normalizeMikanTubeVideo)
-        .filter(Boolean);
+      const data = payload?.data;
+      if (!data || typeof data !== "object") throw new Error("GAS APIの応答形式が不正です");
+      const nextCursor = data.cursorNext || data.continuation || data.nextpage || "";
+      if (nextCursor) MIKANTUBE_CURSORS.set(cursorKey, nextCursor);
+      else MIKANTUBE_CURSORS.delete(cursorKey);
+      return data;
+    }
+
+    function mikanTubeRequestSpec(path) {
+      try {
+        const url = new URL(path, "https://mikan-tube.invalid");
+        const route = url.pathname.replace(/^\/+|\/+$/g, "");
+        const params = Object.fromEntries(url.searchParams.entries());
+        const channelId = (id) => ({ ...params, id, channelId: id });
+        const videoId = (id) => {
+          const cleanParams = { ...params };
+          delete cleanParams.local;
+          return { ...cleanParams, id, videoId: id };
+        };
+        const playlistId = (id) => ({ ...params, id, playlistId: id });
+        const direct = {
+          search: "videos",
+          "channel/details": "channel",
+          "channel/videos": "videos",
+          "video/details": "videoDetails",
+          "video/related-contents": "videos",
+          "playlist/videos": "videos",
+          "playlist/details": "playlist",
+          "video/comments": "comments",
+          "channel/community": "community",
+          "channel/playlists": "playlists",
+          "channel/search": "videos",
+          "auto-complete": "autocomplete",
+          trending: "videos",
+          home: "videos"
+        };
+        if (Object.prototype.hasOwnProperty.call(direct, route)) {
+          let endpointParams = params;
+          let fallbackPath = "";
+          if (route.startsWith("channel/")) {
+            const id = params.channelId || params.id || "";
+            endpointParams = channelId(id);
+            if (route === "channel/details" && id) fallbackPath = `channels/${encodeURIComponent(id)}?hl=ja`;
+            if (route === "channel/videos" && id) fallbackPath = `channels/${encodeURIComponent(id)}?filter=videos&hl=ja`;
+            if (route === "channel/playlists" && id) fallbackPath = `channels/${encodeURIComponent(id)}?filter=playlists&hl=ja`;
+          } else if (route.startsWith("video/")) {
+            const id = params.videoId || params.id || "";
+            endpointParams = videoId(id);
+            if (id) fallbackPath = route === "video/comments"
+              ? `comments/${encodeURIComponent(id)}?source=youtube&sort_by=top`
+              : `videos/${encodeURIComponent(id)}?local=true`;
+          } else if (route.startsWith("playlist/")) {
+            const id = params.playlistId || params.id || "";
+            endpointParams = playlistId(id);
+            if (id) fallbackPath = `playlists/${encodeURIComponent(id)}`;
+          } else if (route === "trending") {
+            fallbackPath = `trending?region=${encodeURIComponent(params.region || "JP")}`;
+          } else if (route === "home") {
+            fallbackPath = DEFAULT_HOME_PATH;
+          }
+          return {
+            endpoint: route,
+            params: endpointParams,
+            kind: direct[route],
+            fallbackPath,
+            gasOnly: ["channel/community", "channel/search", "auto-complete"].includes(route)
+          };
+        }
+
+        let match = route.match(/^channels\/([^/]+)$/);
+        if (match) {
+          const id = decodeURIComponent(match[1]);
+          if (state.route === "channel"
+            && params.continuation
+            && state.channelContinuationProvider
+            && state.channelContinuationProvider.kind !== "mikanTubeApi") return null;
+          const tab = state.route === "channel" ? state.channelTab : "home";
+          if (tab === "playlists") {
+            return {
+              endpoint: "channel/playlists",
+              params: channelId(id),
+              kind: "playlists",
+              fallbackPath: `channels/${encodeURIComponent(id)}?filter=playlists&hl=ja`
+            };
+          }
+          if (tab === "community") {
+            return {
+              endpoint: "channel/community",
+              params: channelId(id),
+              kind: "channelCommunity",
+              fallbackPath: "",
+              gasOnly: true
+            };
+          }
+          if (tab === "home" && !params.continuation && Number(params.page || 1) <= 1) {
+            return { endpoint: "channel/details", params: channelId(id), kind: "channelHome", fallbackPath: path };
+          }
+          const filter = params.filter || (tab === "home" ? "videos" : (CHANNEL_TABS[tab]?.filter || "videos"));
+          return {
+            endpoint: "channel/videos",
+            params: { ...channelId(id), filter },
+            kind: "videos",
+            fallbackPath: path
+          };
+        }
+
+        match = route.match(/^videos\/([^/]+)$/);
+        if (match) {
+          const id = decodeURIComponent(match[1]);
+          return {
+            endpoint: "video/details",
+            params: videoId(id),
+            kind: "videoDetails",
+            fallbackPath: path.includes("?") ? path : `videos/${encodeURIComponent(id)}?local=true`
+          };
+        }
+        match = route.match(/^comments\/([^/]+)$/);
+        if (match) {
+          const id = decodeURIComponent(match[1]);
+          if (params.continuation
+            && state.commentContinuationProvider
+            && state.commentContinuationProvider.kind !== "mikanTubeApi") return null;
+          return {
+            endpoint: "video/comments",
+            params: videoId(id),
+            kind: "comments",
+            fallbackPath: path,
+            gasOnly: Boolean(params.continuation && state.commentContinuationProvider?.kind === "mikanTubeApi")
+          };
+        }
+        match = route.match(/^playlists\/([^/]+)$/);
+        if (match) {
+          const id = decodeURIComponent(match[1]);
+          return {
+            endpoint: "playlist/details",
+            params: playlistId(id),
+            kind: "playlistBundle",
+            fallbackPath: path
+          };
+        }
+      } catch (_) {}
+      return null;
+    }
+
+    async function fetchMikanTubeResult(spec, signal) {
+      if (spec.endpoint === "trending" || spec.endpoint === "home") {
+        const fallbackEndpoint = spec.endpoint === "trending" ? "home" : "trending";
+        let lastError = null;
+        let emptyResult = { videos: [], items: [], continuation: "" };
+        for (const endpoint of [spec.endpoint, fallbackEndpoint]) {
+          try {
+            const data = await fetchMikanTubeEndpoint(endpoint, spec.params, signal);
+            const result = normalizeMikanTubeVideoList(data);
+            if (result.videos.length) return result;
+            emptyResult = result;
+          } catch (error) {
+            if (error.name === "AbortError") throw error;
+            lastError = error;
+          }
+        }
+        if (lastError && !emptyResult.videos.length) throw lastError;
+        return emptyResult;
+      }
+      if (spec.kind === "channelCommunity") {
+        const detailParams = { ...spec.params };
+        delete detailParams.continuation;
+        delete detailParams.page;
+        const [channelResult, communityResult] = await Promise.allSettled([
+          fetchMikanTubeEndpoint("channel/details", detailParams, signal),
+          fetchMikanTubeEndpoint("channel/community", spec.params, signal)
+        ]);
+        if (communityResult.status === "rejected") throw communityResult.reason;
+        const channel = channelResult.status === "fulfilled"
+          ? normalizeMikanTubeChannel(channelResult.value)
+          : { channelId: spec.params.channelId || spec.params.id || "" };
+        return {
+          ...channel,
+          ...normalizeMikanTubeResponse("channel/community", communityResult.value)
+        };
+      }
+      if (spec.kind === "channelHome") {
+        const videoParams = { ...spec.params, filter: "videos" };
+        const [channelResult, videoResult] = await Promise.allSettled([
+          fetchMikanTubeEndpoint("channel/details", spec.params, signal),
+          fetchMikanTubeEndpoint("channel/videos", videoParams, signal)
+        ]);
+        if (channelResult.status === "rejected") throw channelResult.reason;
+        const videoPage = videoResult.status === "fulfilled" ? videoResult.value : { contents: [] };
+        return {
+          ...normalizeMikanTubeChannel(channelResult.value),
+          ...normalizeMikanTubeVideoList(videoPage)
+        };
+      }
+      if (spec.kind === "playlistBundle") {
+        const detailParams = { ...spec.params };
+        delete detailParams.page;
+        delete detailParams.continuation;
+        const [playlistResult, videoResult] = await Promise.allSettled([
+          fetchMikanTubeEndpoint("playlist/details", detailParams, signal),
+          fetchMikanTubeEndpoint("playlist/videos", spec.params, signal)
+        ]);
+        if (videoResult.status === "rejected") throw videoResult.reason;
+        const playlist = playlistResult.status === "fulfilled" ? playlistResult.value : {};
+        return {
+          ...normalizeMikanTubeResponse("playlist/details", playlist),
+          ...normalizeMikanTubeVideoList(videoResult.value)
+        };
+      }
+      const data = await fetchMikanTubeEndpoint(spec.endpoint, spec.params, signal);
+      return normalizeMikanTubeResponse(spec.endpoint, data);
+    }
+
+    function mikanTubeResultIsEmpty(spec, result) {
+      if (["videos", "channelHome", "playlistBundle"].includes(spec.kind)) return !result?.videos?.length;
+      if (spec.kind === "playlists") return !result?.playlists?.length;
+      if (spec.kind === "comments") return !result?.comments?.length;
+      return false;
+    }
+
+    function mergeMikanTubeVideoDetails(playbackData, details) {
+      return {
+        ...playbackData,
+        videoId: details.videoId || playbackData.videoId,
+        title: details.title || playbackData.title,
+        author: details.author || playbackData.author,
+        authorId: details.authorId || playbackData.authorId,
+        authorUrl: details.authorUrl || playbackData.authorUrl,
+        authorThumbnails: details.authorThumbnails?.length ? details.authorThumbnails : playbackData.authorThumbnails,
+        type: details.type || playbackData.type,
+        viewCount: details.viewCount || playbackData.viewCount,
+        publishedText: details.publishedText || playbackData.publishedText,
+        published: details.published ?? playbackData.published,
+        lengthSeconds: details.lengthSeconds || playbackData.lengthSeconds,
+        videoThumbnails: details.videoThumbnails?.length ? details.videoThumbnails : playbackData.videoThumbnails,
+        description: details.description || playbackData.description
+      };
     }
 
     async function api(path, options = {}) {
@@ -2344,27 +2735,75 @@
       const excludedProviders = options.excludedProviders instanceof Set ? options.excludedProviders : new Set();
       if (lane === "main") state.lastApiProvider = null;
       setStatus("busy", "接続中");
-      const searchRequest = new URL(path, "https://mikan-tube.invalid");
-      const searchPage = Number(searchRequest.searchParams.get("page") || 1);
-      const mikanTubeQuery = searchRequest.searchParams.get("q") || "";
-      if (readSettings().useMikanTubeApi === true
-        && !options.skipMikanTubeApi
-        && searchRequest.pathname === "/search"
-        && searchPage <= 1
-        && mikanTubeQuery) {
+      const mikanTubeSpec = readSettings().useMikanTubeApi === true && !options.skipMikanTubeApi
+        ? mikanTubeRequestSpec(path)
+        : null;
+      if (mikanTubeSpec) {
+        let delegatedToNativeApi = false;
         try {
-          const videos = await youtubeSearch(mikanTubeQuery, signal);
-          if (lane === "main") state.lastApiProvider = { kind: "mikanTubeApi", instance: "google-apps-script" };
-          setStatus("", "みかんTube+APIで接続");
-          return videos;
-        } catch (error) {
-          if (signal.aborted || error.name === "AbortError") {
+          const result = await fetchMikanTubeResult(mikanTubeSpec, signal);
+          if (signal.aborted) {
             const aborted = new Error("操作を中断しました");
             aborted.name = "AbortError";
             throw aborted;
           }
-          setStatus("error", "みかんTube+APIに接続できません");
-          throw error;
+          if (mikanTubeSpec.kind === "channelHome" && !result?.videos?.length) {
+            delegatedToNativeApi = true;
+            const nativeData = await api(mikanTubeSpec.fallbackPath || path, {
+              ...options,
+              skipMikanTubeApi: true
+            });
+            const nativeItems = Array.isArray(nativeData)
+              ? nativeData
+              : (nativeData.videos || nativeData.latestVideos || nativeData.items || []);
+            setStatus("", "チャンネル情報はみかんTube+API、動画は従来API");
+            return {
+              ...(Array.isArray(nativeData) ? {} : nativeData),
+              ...result,
+              videos: nativeItems,
+              items: nativeItems,
+              continuation: nativeData?.continuation || result.continuation || ""
+            };
+          }
+          if (mikanTubeResultIsEmpty(mikanTubeSpec, result)) {
+            throw new Error("GAS APIから結果が返らなかったため、従来のAPIへ切り替えます");
+          }
+          if (mikanTubeSpec.kind === "videoDetails") {
+            delegatedToNativeApi = true;
+            const playbackData = await api(mikanTubeSpec.fallbackPath || path, {
+              ...options,
+              skipMikanTubeApi: true
+            });
+            setStatus("", "動画情報はみかんTube+API、再生は従来API");
+            return mergeMikanTubeVideoDetails(playbackData, result);
+          }
+          if (lane === "comments") {
+            state.commentContinuationProvider = { kind: "mikanTubeApi", instance: "google-apps-script" };
+          }
+          if (lane === "main") state.lastApiProvider = { kind: "mikanTubeApi", instance: "google-apps-script" };
+          setStatus("", "みかんTube+APIで接続");
+          return result;
+        } catch (error) {
+          if (error.name === "AbortError") {
+            const aborted = new Error("操作を中断しました");
+            aborted.name = "AbortError";
+            throw aborted;
+          }
+          if (delegatedToNativeApi) throw error;
+          if (mikanTubeSpec.gasOnly) throw error;
+          errors.push(`みかんTube+API: ${error.message}`);
+          if (mikanTubeSpec.fallbackPath && mikanTubeSpec.fallbackPath !== path) {
+            try {
+              return await api(mikanTubeSpec.fallbackPath, {
+                ...options,
+                skipMikanTubeApi: true
+              });
+            } catch (fallbackError) {
+              if (fallbackError.name === "AbortError") throw fallbackError;
+              errors.push(`従来API: ${fallbackError.message}`);
+              throw fallbackError;
+            }
+          }
         }
       }
       const tryPiped = async () => {
@@ -2372,6 +2811,7 @@
           const result = await fetchFromPiped(path, signal, excludedProviders);
           if (!result) return null;
           if (lane === "main") state.lastApiProvider = { kind: "piped", instance: result.instance };
+          if (lane === "comments") state.commentContinuationProvider = { kind: "piped", instance: result.instance };
           return result;
         } catch (error) {
           if (signal.aborted) {
@@ -2411,6 +2851,7 @@
         );
         rememberInstance(result.instance);
         if (lane === "main") state.lastApiProvider = { kind: "invidious", instance: result.instance };
+        if (lane === "comments") state.commentContinuationProvider = { kind: "invidious", instance: result.instance };
         setStatus("", "自動接続");
         return result.data;
       } catch (error) {
@@ -2815,7 +3256,13 @@
           return false;
         }
         state.channelSeenContinuations.add(continuation);
-        const path = channelTabPath(state.channelId, state.channelTab, continuation);
+        const path = state.channelSearchActive && state.channelFilter.trim()
+          ? `channel/search?${new URLSearchParams({
+            channelId: state.channelId,
+            q: state.channelFilter.trim(),
+            continuation
+          })}`
+          : channelTabPath(state.channelId, state.channelTab, continuation);
         let data;
         try {
           data = await api(path, {
@@ -2828,6 +3275,19 @@
           throw error;
         }
         state.channelContinuationProvider = state.lastApiProvider ? { ...state.lastApiProvider } : state.channelContinuationProvider;
+        if (state.channelTab === "community") {
+          const previousPosts = state.channelData?.posts || [];
+          const existingPostIds = new Set(previousPosts.map((post) => post?.postId).filter(Boolean));
+          const nextPosts = (data.posts || []).filter((post) => !post?.postId || !existingPostIds.has(post.postId));
+          state.channelData = {
+            ...state.channelData,
+            posts: [...previousPosts, ...nextPosts]
+          };
+          const nextContinuation = String(data.continuation || "");
+          state.channelContinuation = state.channelSeenContinuations.has(nextContinuation) ? "" : nextContinuation;
+          renderChannelCommunity(state.channelData);
+          return state.channelData.posts.length > previousPosts.length;
+        }
         const items = Array.isArray(data) ? data : (data.videos || data.latestVideos || data.items || []);
         const before = state.homePool.length;
         addHomeToPool(channelItemsForTab(items, state.channelTab));
@@ -2854,10 +3314,27 @@
     }
 
     async function loadMoreHome() {
-      if (!["home", "news", "channel", "music"].includes(state.route) || state.homeLoading) return;
+      if (!["home", "news", "channel", "music", "remotePlaylist"].includes(state.route) || state.homeLoading) return;
       state.homeLoading = true;
       $("#loadMoreButton").disabled = true;
       $("#loadMoreButton").textContent = "読み込み中…";
+      if (state.route === "channel" && state.channelTab === "community") {
+        try {
+          const before = state.channelData?.posts?.length || 0;
+          let attempts = 0;
+          while (state.channelContinuation && attempts < 6
+            && (state.channelData?.posts?.length || 0) === before) {
+            await fetchMoreHomePage();
+            attempts += 1;
+          }
+        } catch (_) {
+          showToast("投稿を取得できませんでした");
+        } finally {
+          state.homeLoading = false;
+          renderChannelCommunity();
+        }
+        return;
+      }
       try {
         if (state.homePool.length < 20) {
           if (state.route === "channel") {
@@ -2890,7 +3367,7 @@
     }
 
     async function loadAllChannelVideos() {
-      if (state.route !== "channel" || state.channelTab === "playlists" || state.homeLoading) return;
+      if (state.route !== "channel" || ["playlists", "community"].includes(state.channelTab) || state.homeLoading) return;
       state.homeLoading = true;
       $("#loadMoreButton").disabled = true;
       $("#loadAllButton").disabled = true;
@@ -3218,24 +3695,42 @@
       $("#searchHistoryPanel").classList.add("hidden");
     }
 
-    function renderSearchHistory(filter = "") {
+    let searchAutocompleteTimer = null;
+    let searchAutocompleteGeneration = 0;
+
+    function renderSearchHistory(filter = "", suggestions = []) {
       const panel = $("#searchHistoryPanel");
       const value = String(filter || "").trim().toLowerCase();
       const terms = readSearchHistory().filter((term) => !value || term.toLowerCase().includes(value));
+      const suggestionTerms = [...new Set(suggestions
+        .map((item) => typeof item === "string" ? item : (item?.text || item?.query || ""))
+        .map((term) => String(term || "").trim())
+        .filter((term) => term && term.toLowerCase() !== value))]
+        .filter((term) => !terms.some((historyTerm) => historyTerm.toLowerCase() === term.toLowerCase()))
+        .slice(0, 8);
+      const rows = [
+        ...suggestionTerms.map((term) => `
+          <div class="search-history-row" role="option">
+            <button class="search-history-term" type="button" data-search-term="${escapeHtml(term)}">
+              ${icon("search", "icon small")}<span>${escapeHtml(term)}</span>
+            </button>
+          </div>`),
+        ...terms.map((term) => `
+          <div class="search-history-row" role="option">
+            <button class="search-history-term" type="button" data-search-term="${escapeHtml(term)}">
+              ${icon("history", "icon small")}<span>${escapeHtml(term)}</span>
+            </button>
+            <button class="search-history-remove" type="button" data-remove-search-term="${escapeHtml(term)}" aria-label="${escapeHtml(term)}を削除">${icon("x", "icon small")}</button>
+          </div>`)
+      ];
       panel.innerHTML = `
         <div class="search-history-header">
           <span>検索履歴</span>
           ${terms.length ? `<button class="search-history-clear" type="button" data-clear-search-history>すべて削除</button>` : ""}
         </div>
         <div class="search-history-list">
-          ${terms.length
-            ? terms.map((term) => `
-              <div class="search-history-row" role="option">
-                <button class="search-history-term" type="button" data-search-term="${escapeHtml(term)}">
-                  ${icon("history", "icon small")}<span>${escapeHtml(term)}</span>
-                </button>
-                <button class="search-history-remove" type="button" data-remove-search-term="${escapeHtml(term)}" aria-label="${escapeHtml(term)}を削除">${icon("x", "icon small")}</button>
-              </div>`).join("")
+          ${rows.length
+            ? rows.join("")
             : `<div class="search-history-row"><span class="search-history-term">${icon("history", "icon small")}<span>検索履歴はありません</span></span></div>`}
         </div>`;
       panel.querySelectorAll("[data-search-term]").forEach((button) => {
@@ -3257,6 +3752,25 @@
         renderSearchHistory($("#searchInput").value);
       });
       panel.classList.remove("hidden");
+    }
+
+    function handleSearchInput() {
+      const query = $("#searchInput").value.trim();
+      const generation = ++searchAutocompleteGeneration;
+      clearTimeout(searchAutocompleteTimer);
+      renderSearchHistory(query);
+      if (!readSettings().useMikanTubeApi || query.length < 2) return;
+      searchAutocompleteTimer = setTimeout(async () => {
+        try {
+          const data = await api(`auto-complete?q=${encodeURIComponent(query)}`, { lane: "autocomplete" });
+          if (generation !== searchAutocompleteGeneration
+            || $("#searchInput").value.trim() !== query
+            || !readSettings().useMikanTubeApi) return;
+          renderSearchHistory(query, data?.results || []);
+        } catch (error) {
+          if (error.name !== "AbortError") return;
+        }
+      }, 220);
     }
 
     const RECOMMENDATION_STOP_WORDS = new Set([
@@ -3437,7 +3951,8 @@
       videos: { label: "動画", filter: "videos" },
       shorts: { label: "ショート", filter: "shorts" },
       live: { label: "ライブ", filter: "livestreams" },
-      playlists: { label: "再生リスト", filter: "" }
+      playlists: { label: "再生リスト", filter: "" },
+      community: { label: "コミュニティ", filter: "" }
     };
 
     function channelTabPath(channelId, tab = "home", continuation = "") {
@@ -3470,7 +3985,7 @@
         || "";
       const href = id ? `https://www.youtube.com/playlist?list=${encodeURIComponent(id)}` : "#";
       return `
-        <a class="playlist-card" href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">
+        <a class="playlist-card" href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer" data-remote-playlist-id="${escapeHtml(id)}">
           ${image ? `<img class="playlist-thumbnail" src="${escapeHtml(image)}" loading="lazy" alt="">` : `<svg class="icon large" aria-hidden="true"><use href="#i-library"></use></svg>`}
           <div class="playlist-card-body">
             <h3>${escapeHtml(title)}</h3>
@@ -3486,6 +4001,99 @@
         ? playlists.map(channelPlaylistHtml).join("")
         : `<div class="empty" style="grid-column:1/-1">${icon("library", "icon large")}<div><h2>再生リストがありません</h2><p>このチャンネルの公開再生リストは見つかりませんでした。</p></div></div>`;
       $("#loadMoreWrap").classList.add("hidden");
+      $("#videoGrid").querySelectorAll("[data-remote-playlist-id]").forEach((link) => {
+        link.addEventListener("click", (event) => {
+          if (!readSettings().useMikanTubeApi || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+          if (!link.dataset.remotePlaylistId) return;
+          event.preventDefault();
+          openRemotePlaylist(link.dataset.remotePlaylistId);
+        });
+      });
+    }
+
+    function renderChannelCommunity(data = state.channelData || {}) {
+      const posts = Array.isArray(data.posts) ? data.posts : [];
+      $("#channelDashboard").classList.add("hidden");
+      $("#videoGrid").className = "community-post-grid";
+      $("#videoGrid").innerHTML = posts.length
+        ? posts.map((post) => {
+          const author = post?.author || {};
+          const rawAvatar = author.avatar;
+          const avatar = Array.isArray(rawAvatar)
+            ? rawAvatar.at(-1)?.url || ""
+            : typeof rawAvatar === "string" ? rawAvatar : (rawAvatar?.url || "");
+          const text = typeof post?.text === "string"
+            ? post.text
+            : Array.isArray(post?.text?.runs)
+              ? post.text.runs.map((run) => run?.text || "").join("")
+              : (post?.text?.text || "");
+          const likes = post?.stats?.likes ?? post?.stats?.likesCount;
+          const comments = post?.stats?.comments ?? post?.stats?.commentCount;
+          return `
+            <article class="community-post">
+              <div class="community-post-header">
+                ${avatar ? `<img class="community-post-avatar" src="${escapeHtml(avatar)}" loading="lazy" alt="">` : ""}
+                <div>
+                  <div class="community-post-author">${escapeHtml(author.title || state.channelAuthor || "チャンネル")}</div>
+                  <div class="community-post-time">${escapeHtml(post?.publishedTimeText || "")}</div>
+                </div>
+              </div>
+              ${text ? `<p class="community-post-text">${escapeHtml(text)}</p>` : ""}
+              <div class="community-post-stats">
+                ${likes !== undefined ? `<span>高評価 ${escapeHtml(likes)}</span>` : ""}
+                ${comments !== undefined ? `<span>コメント ${escapeHtml(comments)}</span>` : ""}
+              </div>
+            </article>`;
+        }).join("")
+        : `<div class="empty"><div><h2>コミュニティ投稿がありません</h2><p>公開投稿がないか、取得できませんでした。</p></div></div>`;
+      $("#loadMoreWrap").classList.toggle("hidden", !state.channelContinuation);
+      $("#loadMoreButton").disabled = false;
+      $("#loadMoreButton").textContent = "投稿をさらに読み込む";
+      $("#loadAllButton").classList.add("hidden");
+    }
+
+    async function openRemotePlaylist(id, pushHistory = true) {
+      const playlistId = String(id || "").trim();
+      if (!playlistId) return;
+      stopPlayback();
+      state.route = "remotePlaylist";
+      state.lastPath = `playlists/${encodeURIComponent(playlistId)}`;
+      state.lastItems = [];
+      state.homeItems = [];
+      state.homePool = [];
+      state.homePage = 1;
+      state.homeLoading = false;
+      state.channelData = null;
+      state.watchPlaylistId = null;
+      $("#clearHistoryButton").classList.add("hidden");
+      $("#channelHeader").classList.add("hidden");
+      $("#channelDashboard").classList.add("hidden");
+      $("#chips").classList.add("hidden");
+      $("#homePage").classList.remove("hidden");
+      $("#watchPage").classList.add("hidden");
+      $("#playlistPage").classList.add("hidden");
+      $("#messagePage").classList.add("hidden");
+      $("#pageHeading").textContent = "再生リストを読み込み中";
+      $("#pageSubheading").textContent = "";
+      $("#videoGrid").className = "video-grid";
+      renderSkeleton(12);
+      if (pushHistory) history.pushState(null, "", `#ytplaylist=${encodeURIComponent(playlistId)}`);
+      try {
+        const data = await api(state.lastPath);
+        const items = Array.isArray(data) ? data : (data.videos || data.items || []);
+        state.lastItems = uniqueVideoItems(items);
+        state.homeItems = state.lastItems.slice(0, 40);
+        state.homePool = state.lastItems.slice(40);
+        $("#pageHeading").textContent = data.title || data.name || "再生リスト";
+        const author = typeof data.author === "string" ? data.author : (data.author?.title || "");
+        const count = data.videoCount ?? data.stats?.videos ?? state.lastItems.length;
+        $("#pageSubheading").textContent = [author, count ? `${formatCount(count)} 本の動画` : ""].filter(Boolean).join(" ・ ");
+        renderHomeItems();
+      } catch (error) {
+        if (error.name === "AbortError") return;
+        $("#videoGrid").innerHTML = `<div class="empty" style="grid-column:1/-1">${icon("alert", "icon large")}<div><h2>再生リストを取得できません</h2><p>公開されている再生リストか確認してください。</p></div></div>`;
+        $("#loadMoreWrap").classList.add("hidden");
+      }
     }
 
     function renderChannelHeader(data = {}) {
@@ -3517,10 +4125,75 @@
       ) ? "登録解除" : "チャンネル登録";
     }
 
+    function restoreChannelSearchBase() {
+      state.channelSearchActive = false;
+      state.lastItems = state.channelBaseItems.slice();
+      state.homeItems = state.channelBaseItems.slice(0, 40);
+      state.homePool = state.channelBaseItems.slice(40);
+      state.channelContinuation = state.channelBaseContinuation;
+      state.channelContinuationProvider = state.channelBaseContinuationProvider
+        ? { ...state.channelBaseContinuationProvider }
+        : null;
+      state.channelSeenContinuations = new Set(state.channelBaseSeenContinuations);
+      renderHomeItems();
+    }
+
+    function scheduleChannelSearch(query) {
+      clearTimeout(channelSearchTimer);
+      const generation = ++channelSearchGeneration;
+      const value = String(query || "").trim();
+      if (!readSettings().useMikanTubeApi) {
+        if (state.channelSearchActive) restoreChannelSearchBase();
+        return;
+      }
+      if (value.length < 2) {
+        state.abortControllers["channel-search"]?.abort();
+        if (state.channelSearchActive) restoreChannelSearchBase();
+        return;
+      }
+      if (!state.channelSearchActive) {
+        state.channelBaseItems = uniqueVideoItems([
+          ...state.homeItems,
+          ...state.homePool,
+          ...state.lastItems
+        ]);
+        state.channelBaseContinuation = state.channelContinuation;
+        state.channelBaseContinuationProvider = state.channelContinuationProvider
+          ? { ...state.channelContinuationProvider }
+          : null;
+        state.channelBaseSeenContinuations = new Set(state.channelSeenContinuations);
+      }
+      channelSearchTimer = setTimeout(async () => {
+        const channelId = state.channelId;
+        try {
+          const params = new URLSearchParams({ channelId, q: value });
+          const data = await api(`channel/search?${params}`, { lane: "channel-search" });
+          if (generation !== channelSearchGeneration
+            || state.route !== "channel"
+            || state.channelId !== channelId
+            || state.channelFilter.trim() !== value) return;
+          const items = Array.isArray(data) ? data : (data.videos || data.items || []);
+          state.channelSearchActive = true;
+          state.lastItems = channelItemsForTab(items, state.channelTab);
+          state.homeItems = state.lastItems.slice(0, 40);
+          state.homePool = state.lastItems.slice(40);
+          state.channelContinuation = String(data.continuation || "");
+          state.channelContinuationProvider = { kind: "mikanTubeApi", instance: "google-apps-script" };
+          state.channelSeenContinuations = new Set();
+          renderHomeItems();
+        } catch (error) {
+          if (error.name === "AbortError") return;
+        }
+      }, 260);
+    }
+
     async function openChannel(id, url = "", author = "チャンネル", tab = "home") {
       const channelId = channelIdFrom(id, url);
       if (!channelId) return showToast("このチャンネルのホームを取得できません");
       stopPlayback();
+      clearTimeout(channelSearchTimer);
+      channelSearchGeneration += 1;
+      state.abortControllers["channel-search"]?.abort();
       const channelTab = CHANNEL_TABS[tab] ? tab : "home";
       state.route = "channel";
       $("#clearHistoryButton").classList.add("hidden");
@@ -3535,6 +4208,11 @@
       state.channelTab = channelTab;
       state.channelFilter = "";
       state.channelSort = "latest";
+      state.channelBaseItems = [];
+      state.channelBaseContinuation = "";
+      state.channelBaseContinuationProvider = null;
+      state.channelBaseSeenContinuations = new Set();
+      state.channelSearchActive = false;
       state.lastPath = channelTabPath(channelId, channelTab);
       state.homePage = 1;
       state.homeItems = [];
@@ -3560,7 +4238,7 @@
         state.channelContinuationProvider = state.lastApiProvider ? { ...state.lastApiProvider } : null;
         state.lastItems = channelItemsForTab(firstPageItems, channelTab);
         let initialPages = 0;
-        while (channelTab !== "playlists" && state.lastItems.length < 40
+        while (channelTab !== "playlists" && channelTab !== "community" && state.lastItems.length < 40
           && state.channelContinuation && initialPages < 8) {
           const continuation = state.channelContinuation;
           if (state.channelSeenContinuations.has(continuation)) {
@@ -3590,11 +4268,24 @@
             break;
           }
         }
+        state.channelBaseItems = state.lastItems.slice();
+        state.channelBaseContinuation = state.channelContinuation;
+        state.channelBaseContinuationProvider = state.channelContinuationProvider
+          ? { ...state.channelContinuationProvider }
+          : null;
+        state.channelBaseSeenContinuations = new Set(state.channelSeenContinuations);
         state.homeItems = state.lastItems.slice(0, 40);
         state.homePool = state.lastItems.slice(40);
         if (channelTab === "playlists") {
           renderChannelHeader(data);
           renderChannelPlaylists(data);
+        } else if (channelTab === "community") {
+          if (data.author) {
+            state.channelAuthor = localizeChannelName(data.author);
+            $("#pageHeading").textContent = state.channelAuthor;
+          }
+          renderChannelHeader(data);
+          renderChannelCommunity(data);
         } else {
           if (data.author) {
             state.channelAuthor = localizeChannelName(data.author);
@@ -4186,7 +4877,16 @@
 
     async function prepareNextVideos(raw, videoId) {
       state.nextItems = [];
-      const recommended = uniqueVideoItems(raw.recommendedVideos || [], new Set([videoId]));
+      let relatedItems = raw.recommendedVideos || [];
+      if (readSettings().useMikanTubeApi === true) {
+        try {
+          const data = await api(`video/related-contents?videoId=${encodeURIComponent(videoId)}`, { lane: "related-videos" });
+          relatedItems = data?.videos || data?.items || data?.recommendedVideos || relatedItems;
+        } catch (error) {
+          if (error.name === "AbortError") relatedItems = raw.recommendedVideos || [];
+        }
+      }
+      const recommended = uniqueVideoItems(relatedItems, new Set([videoId]));
       state.nextItems = recommended.slice(0, 8);
       renderSidePanel();
     }
@@ -4327,6 +5027,7 @@
       const button = $("#commentsMoreButton");
       if (!append) {
         state.commentContinuation = "";
+        state.commentContinuationProvider = null;
         list.innerHTML = "";
         status.textContent = "コメントを読み込み中…";
         status.hidden = false;
@@ -4569,9 +5270,9 @@
           setPlayerStream(stream, false, forceAutoPlay);
         }
         if (!musicMode) {
+          loadComments(videoId);
           await prepareNextVideos(raw, videoId);
           if (state.watchPlaylistId) renderSidePanel();
-          loadComments(videoId);
         }
       } catch (error) {
         if (error.name === "AbortError") return;
@@ -4779,9 +5480,11 @@
       const watch = hash.match(/^#watch=(.+)$/);
       const searchMatch = hash.match(/^#search=(.+)$/);
       const channelMatch = hash.match(/^#channel=([^&]+)(?:&tab=([^&]+))?$/);
+      const remotePlaylistMatch = hash.match(/^#ytplaylist=(.+)$/);
       if (hash === "#news") return loadNews();
       if (watch) return openVideo(decodeURIComponent(watch[1]));
       if (searchMatch) return search(decodeURIComponent(searchMatch[1]));
+      if (remotePlaylistMatch) return openRemotePlaylist(decodeURIComponent(remotePlaylistMatch[1]), false);
       if (channelMatch) return openChannel(decodeURIComponent(channelMatch[1]), "", "チャンネル", decodeURIComponent(channelMatch[2] || "home"));
       return loadHome();
     }
@@ -4843,8 +5546,8 @@
       event.preventDefault();
       search($("#searchInput").value);
     });
-    $("#searchInput").addEventListener("focus", () => renderSearchHistory($("#searchInput").value));
-    $("#searchInput").addEventListener("input", () => renderSearchHistory($("#searchInput").value));
+    $("#searchInput").addEventListener("focus", handleSearchInput);
+    $("#searchInput").addEventListener("input", handleSearchInput);
     document.addEventListener("click", (event) => {
       if (!event.target.closest(".search-wrap")) hideSearchHistory();
     });
@@ -4871,6 +5574,7 @@
       if (state.route !== "channel") return;
       state.channelFilter = event.target.value;
       renderHomeItems();
+      scheduleChannelSearch(state.channelFilter);
     });
     $("#channelSortSelect").addEventListener("change", (event) => {
       if (state.route !== "channel") return;
