@@ -1180,6 +1180,75 @@
       .music-player-bar { right: 5px; left: 5px; }
       .music-playback-controls { gap: 0; }
     }
+    /* 音に反応するダイナミック・グラス */
+    body.music-active {
+      --music-bass: 0;
+      --music-mid: 0;
+      --music-treble: 0;
+      --music-energy: 0;
+      --glass-blur: 22px;
+      --glass-sat: 150%;
+      --glass-glow: 0;
+      --glass-scale: 1;
+    }
+    body.music-active::before {
+      content: "";
+      position: fixed;
+      inset: -18%;
+      z-index: 0;
+      pointer-events: none;
+      opacity: calc(.20 + var(--music-energy) * .58);
+      background:
+        radial-gradient(ellipse at calc(15% + var(--music-bass) * 35%) calc(22% + var(--music-mid) * 30%),
+          hsla(calc(195 + var(--music-bass) * 95), 95%, 64%, .42), transparent 34%),
+        radial-gradient(ellipse at calc(82% - var(--music-mid) * 28%) calc(72% - var(--music-treble) * 24%),
+          hsla(calc(270 + var(--music-treble) * 75), 95%, 68%, .38), transparent 38%),
+        radial-gradient(ellipse at 48% 48%, rgba(255,130,75,.18), transparent 45%);
+      filter: blur(calc(34px + var(--music-energy) * 42px));
+      transform: scale(calc(1 + var(--music-energy) * .08));
+      transition: opacity .08s linear;
+      animation: musicAurora 12s ease-in-out infinite alternate;
+    }
+    @keyframes musicAurora {
+      0% { transform: translate3d(-2%, -1%, 0) scale(1); }
+      100% { transform: translate3d(2%, 2%, 0) scale(1.08); }
+    }
+    body.music-active .topbar,
+    body.music-active .sidebar,
+    body.music-active .music-filter-bar,
+    body.music-active .music-player-bar {
+      backdrop-filter: blur(calc(18px + var(--music-energy) * 34px)) saturate(calc(145% + var(--music-energy) * 115%)) brightness(calc(1 + var(--music-energy) * .16));
+      -webkit-backdrop-filter: blur(calc(18px + var(--music-energy) * 34px)) saturate(calc(145% + var(--music-energy) * 115%)) brightness(calc(1 + var(--music-energy) * .16));
+      border-color: rgba(255,255,255, calc(.12 + var(--music-energy) * .30));
+      box-shadow: 0 12px calc(28px + var(--music-energy) * 48px) rgba(40,150,255, calc(.06 + var(--music-energy) * .20)),
+                  0 0 calc(8px + var(--music-energy) * 28px) hsla(calc(195 + var(--music-bass) * 110), 100%, 70%, calc(var(--music-energy) * .24));
+    }
+    body.music-active .video-card {
+      backdrop-filter: blur(calc(12px + var(--music-energy) * 24px)) saturate(calc(130% + var(--music-energy) * 100%));
+      -webkit-backdrop-filter: blur(calc(12px + var(--music-energy) * 24px)) saturate(calc(130% + var(--music-energy) * 100%));
+      border-color: rgba(255,255,255, calc(.08 + var(--music-energy) * .25));
+      box-shadow: 0 8px calc(16px + var(--music-energy) * 32px) hsla(calc(205 + var(--music-mid) * 100), 100%, 65%, calc(var(--music-energy) * .16));
+    }
+    body.music-active .music-player-bar {
+      transform: translateY(calc(var(--music-energy) * -2px)) scale(calc(1 + var(--music-energy) * .008));
+      transition: border-color .08s linear, box-shadow .08s linear;
+    }
+    body.music-active .music-track-info img {
+      box-shadow: 0 0 calc(8px + var(--music-bass) * 30px) hsla(calc(190 + var(--music-bass) * 120), 100%, 70%, .65);
+      transform: scale(calc(1 + var(--music-bass) * .07));
+      transition: transform .07s linear, box-shadow .07s linear;
+    }
+    body.music-active .music-play-button {
+      box-shadow: 0 0 calc(8px + var(--music-energy) * 30px) hsla(calc(25 + var(--music-treble) * 100), 100%, 65%, calc(.2 + var(--music-energy) * .55));
+      transform: scale(calc(1 + var(--music-energy) * .06));
+    }
+    body.music-active .content,
+    body.music-active .page,
+    body.music-active .layout { position: relative; z-index: 1; }
+    @media (prefers-reduced-motion: reduce) {
+      body.music-active::before { animation: none; }
+    }
+
   </style>
 </head>
 <body>
@@ -2879,6 +2948,106 @@
       const player = $("#player");
       return state.musicPlayback && audio?.src ? audio : player;
     }
+
+    // Web Audio analyser: bass / mids / treble drive the glass UI.
+    let musicAudioContext = null;
+    let musicAnalyser = null;
+    let musicAnalyserSource = null;
+    let musicAnalyserFrame = 0;
+    let musicAnalyserData = null;
+    let musicAnalyserMedia = null;
+
+    function ensureMusicAnalyser(media) {
+      if (!media || !window.AudioContext && !window.webkitAudioContext) return false;
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!musicAudioContext) {
+          musicAudioContext = new AudioContextClass();
+          musicAnalyser = musicAudioContext.createAnalyser();
+          musicAnalyser.fftSize = 1024;
+          musicAnalyser.smoothingTimeConstant = 0.72;
+          musicAnalyserData = new Uint8Array(musicAnalyser.frequencyBinCount);
+          musicAnalyser.connect(musicAudioContext.destination);
+        }
+        if (musicAnalyserMedia !== media) {
+          if (musicAnalyserSource) {
+            try { musicAnalyserSource.disconnect(); } catch (_) {}
+          }
+          musicAnalyserSource = musicAudioContext.createMediaElementSource(media);
+          musicAnalyserSource.connect(musicAnalyser);
+          musicAnalyserMedia = media;
+        }
+        if (musicAudioContext.state === "suspended") musicAudioContext.resume().catch(() => {});
+        return true;
+      } catch (error) {
+        // Cross-origin streams may block analysis; normal playback remains available.
+        return false;
+      }
+    }
+
+    function stopMusicVisualizer() {
+      if (musicAnalyserFrame) cancelAnimationFrame(musicAnalyserFrame);
+      musicAnalyserFrame = 0;
+      document.body.style.setProperty("--music-energy", "0");
+      document.body.style.setProperty("--music-bass", "0");
+      document.body.style.setProperty("--music-mid", "0");
+      document.body.style.setProperty("--music-treble", "0");
+    }
+
+    function startMusicVisualizer(media) {
+      if (!ensureMusicAnalyser(media)) {
+        stopMusicVisualizer();
+        return;
+      }
+      if (musicAnalyserFrame) cancelAnimationFrame(musicAnalyserFrame);
+      const tick = () => {
+        if (!media || media.paused || media.ended || !musicAnalyser) {
+          stopMusicVisualizer();
+          return;
+        }
+        musicAnalyser.getByteFrequencyData(musicAnalyserData);
+        const count = musicAnalyserData.length;
+        const band = (from, to) => {
+          let total = 0;
+          const start = Math.floor(count * from), end = Math.max(start + 1, Math.floor(count * to));
+          for (let i = start; i < end; i++) total += musicAnalyserData[i] / 255;
+          return total / (end - start);
+        };
+        const bass = Math.min(1, band(0, .08) * 1.9);
+        const mid = Math.min(1, band(.08, .42) * 2.0);
+        const treble = Math.min(1, band(.42, 1) * 2.2);
+        const energy = Math.min(1, bass * .48 + mid * .34 + treble * .18);
+        const root = document.body.style;
+        root.setProperty("--music-bass", bass.toFixed(3));
+        root.setProperty("--music-mid", mid.toFixed(3));
+        root.setProperty("--music-treble", treble.toFixed(3));
+        root.setProperty("--music-energy", energy.toFixed(3));
+        musicAnalyserFrame = requestAnimationFrame(tick);
+      };
+      musicAnalyserFrame = requestAnimationFrame(tick);
+    }
+
+    function startMusicPlaybackFromGesture() {
+      const media = activeMusicMedia();
+      if (!media) return;
+      try {
+        // Call play() immediately inside the click handler to preserve user activation.
+        if (state.musicPlayback) ensureMusicAnalyser(media);
+        const playPromise = media.play();
+        Promise.resolve(playPromise).then(() => {
+          if (state.musicPlayback) startMusicVisualizer(media);
+          updateMusicPlayer();
+        }).catch(() => {
+          stopMusicVisualizer();
+          showToast("再生できませんでした。もう一度再生ボタンを押してください");
+          updateMusicPlayer();
+        });
+      } catch (error) {
+        stopMusicVisualizer();
+        showToast("再生できませんでした。もう一度お試しください");
+      }
+    }
+
     function formatMusicTime(seconds) {
       const value = Math.max(0, Number(seconds) || 0);
       const minutes = Math.floor(value / 60);
@@ -4616,6 +4785,7 @@
       state.playbackRetry = null;
       state.lastApiProvider = null;
       state.playbackRequested = false;
+      stopMusicVisualizer();
       clearTimeout(state.playbackWatchdog);
       clearTimeout(state.playbackStallWatchdog);
       state.playbackWatchdog = null;
@@ -5260,12 +5430,17 @@
           videoPlayer.pause();
           videoPlayer.removeAttribute("src");
           videoPlayer.load();
+          audio.pause();
+          audio.crossOrigin = "anonymous";
+          audio.preload = "auto";
           audio.src = state.currentAudioStream.url;
           audio.volume = videoPlayer.volume;
           audio.muted = false;
           audio.load();
           setPlayerLoading(false);
-          audio.play().catch(() => showToast("再生ボタンを押して音声を再生してください"));
+          // The API response arrives after the original click; autoplay may be blocked.
+          // Keep the player ready and let the visible play button provide a fresh gesture.
+          updateMusicPlayer();
         } else {
           setPlayerStream(stream, false, forceAutoPlay);
         }
@@ -5506,8 +5681,11 @@
     $("#musicPlayPauseButton").addEventListener("click", () => {
       const media = activeMusicMedia();
       if (!media) return;
-      if (media.paused) media.play().catch(() => showToast("音声を再生できませんでした"));
-      else media.pause();
+      if (media.paused) startMusicPlaybackFromGesture();
+      else {
+        media.pause();
+        stopMusicVisualizer();
+      }
       updateMusicPlayer();
     });
     $("#musicSeek").addEventListener("input", (event) => {
@@ -5529,6 +5707,14 @@
     for (const mediaSelector of ["#player", "#audioPlayer"]) {
       const media = $(mediaSelector);
       ["loadedmetadata", "timeupdate", "play", "pause", "ended", "durationchange", "volumechange"].forEach((eventName) => media.addEventListener(eventName, updateMusicPlayer));
+      media.addEventListener("play", () => {
+        if (state.musicPlayback) {
+          ensureMusicAnalyser(media);
+          startMusicVisualizer(media);
+        }
+      });
+      media.addEventListener("pause", stopMusicVisualizer);
+      media.addEventListener("ended", stopMusicVisualizer);
     }
     $("#menuButton").addEventListener("click", () => $("#sidebar").classList.toggle("collapsed"));
     $("#watchAvatar").addEventListener("click", () => {
@@ -5648,6 +5834,22 @@
     $("#player").addEventListener("error", () => {
       setPlayerLoading(false);
       retryPlaybackFromFallback();
+    });
+    $("#audioPlayer").addEventListener("error", () => {
+      if (!state.musicPlayback || !state.currentVideo) return;
+      const fallback = (state.currentPlaybackCandidates || []).find((stream) => stream?._progressive && stream.url);
+      if (!fallback) {
+        showToast("この曲の音声を読み込めませんでした");
+        return;
+      }
+      showToast("音声形式を切り替えています…");
+      const player = $("#player");
+      player.muted = false;
+      player.volume = $("#audioPlayer").volume;
+      setPlayerStream(fallback, false, false);
+      $("#audioPlayer").pause();
+      $("#audioPlayer").removeAttribute("src");
+      $("#audioPlayer").load();
     });
     $("#player").addEventListener("play", () => {
       state.playbackRequested = true;
