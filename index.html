@@ -1411,6 +1411,120 @@
                   inset 0 0 10px rgba(255,255,255,.16);
     }
 
+
+    /* 最終色調整：Music演出のアクセントを赤に統一。ピンク・紫・青への色相変化を禁止 */
+    body.music-active {
+      --music-red: 255, 48, 56;
+      background:
+        radial-gradient(ellipse at 50% 0%, rgba(255,48,56,.12), transparent 48%),
+        #101318 !important;
+    }
+    body.music-active::before {
+      background:
+        radial-gradient(ellipse at calc(16% + var(--music-bass) * 28%) 24%,
+          rgba(255,48,56,calc(.10 + var(--music-energy) * .22)), transparent 43%),
+        radial-gradient(ellipse at calc(82% - var(--music-treble) * 20%) 76%,
+          rgba(255,48,56,calc(.05 + var(--music-energy) * .14)), transparent 46%) !important;
+      filter: blur(calc(30px + var(--music-energy) * 48px)) !important;
+    }
+    body.music-active .topbar,
+    body.music-active .sidebar,
+    body.music-active .music-filter-bar,
+    body.music-active .music-player-bar {
+      border-color: rgba(255,255,255,calc(.14 + var(--music-energy) * .20)) !important;
+      box-shadow:
+        0 14px calc(28px + var(--music-energy) * 42px) rgba(0,0,0,.18),
+        0 0 calc(8px + var(--music-energy) * 24px) rgba(255,48,56,calc(.035 + var(--music-energy) * .14)),
+        inset 0 1px 0 rgba(255,255,255,calc(.10 + var(--music-energy) * .16)) !important;
+      backdrop-filter: blur(calc(28px + var(--music-energy) * 42px)) saturate(100%) brightness(calc(1.01 + var(--music-energy) * .08)) !important;
+      -webkit-backdrop-filter: blur(calc(28px + var(--music-energy) * 42px)) saturate(100%) brightness(calc(1.01 + var(--music-energy) * .08)) !important;
+    }
+    body.music-active .topbar {
+      background: rgba(20,20,24,calc(.68 - var(--music-energy) * .10)) !important;
+      background-image: linear-gradient(110deg,
+        rgba(255,255,255,calc(.10 + var(--music-energy) * .10)),
+        rgba(255,48,56,calc(.025 + var(--music-mid) * .075))) !important;
+      border-bottom-color: rgba(255,48,56,calc(.16 + var(--music-energy) * .22)) !important;
+    }
+    body.music-active .video-card {
+      border-color: rgba(255,255,255,calc(.10 + var(--music-energy) * .16)) !important;
+      box-shadow:
+        0 10px calc(18px + var(--music-energy) * 34px) rgba(0,0,0,.12),
+        0 0 calc(6px + var(--music-energy) * 18px) rgba(255,48,56,calc(.025 + var(--music-energy) * .10)),
+        inset 0 1px 0 rgba(255,255,255,calc(.06 + var(--music-energy) * .12)) !important;
+    }
+    body.music-active .music-track-info img {
+      filter: none !important;
+      box-shadow: 0 0 calc(10px + var(--music-bass) * 34px) rgba(255,48,56,calc(.16 + var(--music-bass) * .32)) !important;
+    }
+    body.music-active .music-play-button {
+      box-shadow: 0 0 calc(10px + var(--music-energy) * 38px) rgba(255,48,56,calc(.20 + var(--music-energy) * .36)),
+                  inset 0 0 10px rgba(255,255,255,.16) !important;
+    }
+    /* ニュースラベルなど既存UIの赤を、Music演出がピンク化しないよう固定 */
+    body.music-active .news-feed-ticker-label {
+      background-image: none !important;
+      background-color: transparent !important;
+      color: #ff3038 !important;
+      -webkit-text-fill-color: #ff3038 !important;
+      animation: none !important;
+    }
+    body.music-active .music-category.active,
+    body.music-active .music-play-button {
+      background-color: #ff3038 !important;
+    }
+    body.music-active .music-kicker,
+    body.music-active .music-only-toggle[aria-pressed="true"] {
+      color: #ff777d !important;
+    }
+
+
+    /* サムネイル連動カラー：画面の演出色は再生中の動画サムネイルから抽出 */
+    body.music-active { --music-color-rgb: 150, 150, 150; }
+    body.music-active::before {
+      background:
+        radial-gradient(ellipse at calc(16% + var(--music-bass) * 28%) 24%,
+          rgba(var(--music-color-rgb), calc(.12 + var(--music-energy) * .28)), transparent 45%),
+        radial-gradient(ellipse at calc(82% - var(--music-treble) * 20%) 76%,
+          rgba(var(--music-color-rgb), calc(.06 + var(--music-energy) * .16)), transparent 48%) !important;
+      opacity: calc(.42 + var(--music-energy) * .52) !important;
+      filter: blur(calc(32px + var(--music-energy) * 54px)) !important;
+    }
+    body.music-active .topbar,
+    body.music-active .sidebar,
+    body.music-active .music-filter-bar,
+    body.music-active .music-player-bar {
+      border-color: rgba(var(--music-color-rgb), calc(.16 + var(--music-energy) * .24)) !important;
+      box-shadow:
+        0 14px calc(28px + var(--music-energy) * 46px) rgba(0,0,0,.14),
+        0 0 calc(8px + var(--music-energy) * 24px) rgba(var(--music-color-rgb), calc(.04 + var(--music-energy) * .16)),
+        inset 0 1px 0 rgba(255,255,255,calc(.12 + var(--music-energy) * .18)) !important;
+      backdrop-filter: blur(calc(28px + var(--music-energy) * 42px)) saturate(115%) brightness(calc(1.01 + var(--music-energy) * .08)) !important;
+      -webkit-backdrop-filter: blur(calc(28px + var(--music-energy) * 42px)) saturate(115%) brightness(calc(1.01 + var(--music-energy) * .08)) !important;
+    }
+    body.music-active .topbar {
+      background: rgba(18,20,24,.72) !important;
+      background-image: linear-gradient(110deg,
+        rgba(255,255,255,calc(.10 + var(--music-energy) * .10)),
+        rgba(var(--music-color-rgb),calc(.035 + var(--music-mid) * .10))) !important;
+      border-bottom-color: rgba(var(--music-color-rgb),calc(.20 + var(--music-energy) * .28)) !important;
+    }
+    body.music-active .video-card {
+      border-color: rgba(var(--music-color-rgb),calc(.10 + var(--music-energy) * .18)) !important;
+      box-shadow:
+        0 10px calc(18px + var(--music-energy) * 34px) rgba(0,0,0,.12),
+        0 0 calc(6px + var(--music-energy) * 18px) rgba(var(--music-color-rgb),calc(.025 + var(--music-energy) * .12)),
+        inset 0 1px 0 rgba(255,255,255,calc(.06 + var(--music-energy) * .12)) !important;
+    }
+    body.music-active .music-track-info img {
+      filter: none !important;
+      box-shadow: 0 0 calc(10px + var(--music-bass) * 34px) rgba(var(--music-color-rgb),calc(.22 + var(--music-bass) * .40)) !important;
+    }
+    body.music-active .music-play-button {
+      box-shadow: 0 0 calc(10px + var(--music-energy) * 38px) rgba(var(--music-color-rgb),calc(.20 + var(--music-energy) * .42)),
+                  inset 0 0 10px rgba(255,255,255,.16) !important;
+    }
+
   </style>
 </head>
 <body>
@@ -3105,6 +3219,64 @@
       throw new Error(errors.slice(0, 4).join(" / ") || "接続先が見つかりません");
     }
 
+    // サムネイルから代表色を抽出し、Music画面のガラス演出に反映する。
+    let musicAccentRequestId = 0;
+    function setMusicAccentColor(rgb) {
+      const safe = Array.isArray(rgb) && rgb.length === 3
+        ? rgb.map((value) => Math.max(0, Math.min(255, Math.round(value))))
+        : [255, 138, 61];
+      document.body.style.setProperty("--music-color-rgb", safe.join(", "));
+    }
+    function extractMusicAccentColor(imageUrl) {
+      const requestId = ++musicAccentRequestId;
+      if (!imageUrl) { setMusicAccentColor([150, 150, 150]); return; }
+      const image = new Image();
+      image.crossOrigin = "anonymous";
+      image.decoding = "async";
+      image.onload = () => {
+        if (requestId !== musicAccentRequestId) return;
+        try {
+          const canvas = document.createElement("canvas");
+          const context = canvas.getContext("2d", { willReadFrequently: true });
+          if (!context) return;
+          const width = 36, height = 36;
+          canvas.width = width; canvas.height = height;
+          context.drawImage(image, 0, 0, width, height);
+          const pixels = context.getImageData(0, 0, width, height).data;
+          const buckets = new Map();
+          for (let i = 0; i < pixels.length; i += 4 * 2) {
+            const r = pixels[i], g = pixels[i + 1], b = pixels[i + 2], a = pixels[i + 3];
+            if (a < 150) continue;
+            const max = Math.max(r, g, b), min = Math.min(r, g, b);
+            const saturation = max ? (max - min) / max : 0;
+            const lightness = (max + min) / 2;
+            // 白・黒・グレーの面積に引っ張られず、絵の主役色を優先。
+            if (lightness < 30 || lightness > 242 || saturation < .18) continue;
+            const key = [r >> 5, g >> 5, b >> 5].join(":");
+            const weight = .35 + saturation * 1.15;
+            const entry = buckets.get(key) || { r: 0, g: 0, b: 0, weight: 0, count: 0 };
+            entry.r += r * weight; entry.g += g * weight; entry.b += b * weight;
+            entry.weight += weight; entry.count++;
+            buckets.set(key, entry);
+          }
+          let best = null, bestScore = -1;
+          for (const entry of buckets.values()) {
+            const score = entry.count * (1 + Math.min(1, entry.weight / Math.max(1, entry.count)) * .65);
+            if (score > bestScore) { bestScore = score; best = entry; }
+          }
+          if (!best) { setMusicAccentColor([150, 150, 150]); return; }
+          setMusicAccentColor([best.r / best.weight, best.g / best.weight, best.b / best.weight]);
+        } catch (_) {
+          // CDNがCORSを許可しない場合は再生を妨げず、無彩色のガラスにフォールバック。
+          if (requestId === musicAccentRequestId) setMusicAccentColor([150, 150, 150]);
+        }
+      };
+      image.onerror = () => {
+        if (requestId === musicAccentRequestId) setMusicAccentColor([150, 150, 150]);
+      };
+      image.src = imageUrl;
+    }
+
     function activeMusicMedia() {
       const audio = $("#audioPlayer");
       const player = $("#player");
@@ -3232,7 +3404,11 @@
       $("#musicPlayPauseButton").setAttribute("aria-label", playing ? "一時停止" : "再生");
     }
     function showMusicPlayer(item) {
-      $("#musicTrackThumb").src = thumbnail(item);
+      const coverUrl = thumbnail(item);
+      const cover = $("#musicTrackThumb");
+      cover.crossOrigin = "anonymous";
+      cover.src = coverUrl;
+      extractMusicAccentColor(coverUrl);
       $("#musicTrackTitle").textContent = item.title || "タイトルなし";
       $("#musicTrackChannel").textContent = item.author || "チャンネル不明";
       $("#musicPlayerBar").classList.remove("hidden");
