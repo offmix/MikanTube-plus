@@ -1346,6 +1346,71 @@
       body.music-active .topbar { transition: none; }
     }
 
+
+    /* 色味修正版：サイト本来の配色を尊重し、余計な青・紫・ピンク系の着色を排除 */
+    body.music-active::before {
+      background:
+        radial-gradient(ellipse at calc(14% + var(--music-bass) * 34%) calc(24% + var(--music-mid) * 24%),
+          rgba(255,138,61,calc(.10 + var(--music-energy) * .20)), transparent 42%),
+        radial-gradient(ellipse at calc(82% - var(--music-mid) * 22%) calc(76% - var(--music-treble) * 18%),
+          rgba(255,255,255,calc(.035 + var(--music-energy) * .075)), transparent 44%);
+      filter: blur(calc(30px + var(--music-energy) * 48px));
+      opacity: calc(.32 + var(--music-energy) * .52);
+    }
+    body.music-active .topbar,
+    body.music-active .sidebar,
+    body.music-active .music-filter-bar,
+    body.music-active .music-player-bar {
+      backdrop-filter: blur(calc(28px + var(--music-energy) * 42px)) saturate(100%) brightness(calc(1.01 + var(--music-energy) * .08));
+      -webkit-backdrop-filter: blur(calc(28px + var(--music-energy) * 42px)) saturate(100%) brightness(calc(1.01 + var(--music-energy) * .08));
+      border-color: rgba(255,255,255,calc(.16 + var(--music-energy) * .22));
+      box-shadow: 0 14px calc(28px + var(--music-energy) * 46px) rgba(0,0,0,.12),
+                  inset 0 1px 0 rgba(255,255,255,calc(.12 + var(--music-energy) * .18));
+    }
+    body.music-active .topbar {
+      background: rgba(255,255,255,calc(.58 - var(--music-energy) * .10)) !important;
+      background-image: linear-gradient(110deg,
+        rgba(255,255,255,calc(.20 + var(--music-energy) * .12)),
+        rgba(255,138,61,calc(.025 + var(--music-mid) * .055))) !important;
+      border-bottom-color: rgba(255,138,61,calc(.18 + var(--music-energy) * .24));
+      box-shadow: 0 10px calc(26px + var(--music-energy) * 42px) rgba(0,0,0,.10),
+                  inset 0 -1px 0 rgba(255,255,255,.28),
+                  0 0 calc(8px + var(--music-energy) * 20px) rgba(255,138,61,calc(.04 + var(--music-energy) * .12));
+    }
+    :root[data-theme="dark"] body.music-active .topbar {
+      background: rgba(15,15,15,calc(.62 - var(--music-energy) * .12)) !important;
+      background-image: linear-gradient(110deg,
+        rgba(255,255,255,calc(.10 + var(--music-energy) * .10)),
+        rgba(255,138,61,calc(.025 + var(--music-mid) * .06))) !important;
+    }
+    body.music-active .sidebar,
+    body.music-active .music-filter-bar,
+    body.music-active .music-player-bar {
+      background-color: rgba(255,255,255,calc(.055 + var(--music-energy) * .045));
+    }
+    :root[data-theme="dark"] body.music-active .sidebar,
+    :root[data-theme="dark"] body.music-active .music-filter-bar,
+    :root[data-theme="dark"] body.music-active .music-player-bar {
+      background-color: rgba(255,255,255,calc(.045 + var(--music-energy) * .04));
+    }
+    body.music-active .video-card {
+      backdrop-filter: blur(calc(12px + var(--music-energy) * 22px)) saturate(100%);
+      -webkit-backdrop-filter: blur(calc(12px + var(--music-energy) * 22px)) saturate(100%);
+      border-color: rgba(255,255,255,calc(.10 + var(--music-energy) * .16));
+      box-shadow: 0 10px calc(18px + var(--music-energy) * 34px) rgba(0,0,0,.10),
+                  inset 0 1px 0 rgba(255,255,255,calc(.06 + var(--music-energy) * .12));
+    }
+    /* アートワーク自体には色補正をかけず、赤をピンクに変えない */
+    body.music-active .music-track-info img {
+      filter: none !important;
+      box-shadow: 0 0 calc(10px + var(--music-bass) * 34px) rgba(255,138,61,calc(.18 + var(--music-bass) * .38)),
+                  0 0 calc(4px + var(--music-mid) * 12px) rgba(255,255,255,.18);
+    }
+    body.music-active .music-play-button {
+      box-shadow: 0 0 calc(10px + var(--music-energy) * 38px) rgba(255,138,61,calc(.22 + var(--music-energy) * .42)),
+                  inset 0 0 10px rgba(255,255,255,.16);
+    }
+
   </style>
 </head>
 <body>
