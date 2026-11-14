@@ -33,7 +33,7 @@ HTML一枚で動き軽量で本家YouTubeに匹敵する機能を目指してい
 
 ### v1.0.0
  - みかんTube+を公開
- - 基本機能を実装
+ - 基本の機能を実装
 ## 開発者
  - off_mix
 ## その他
@@ -41,7 +41,7 @@ Github Pages以外の公式URL
  - [html.cafe版](https://html.cafe/xa9e50f42)
  - [GAS版](https://script.google.com/macros/s/AKfycbx90qdu-36kfACwy85YHqgJMq0HVhgpZDXxtRbbLoQdRbxyAGNVoluvwiBEB06DqUsT/exec
 )
-  ### 独自APIについて
+  ### Rapid APIについて
    - Invidiousを使用したほうが取得が速いです。GAS経由で取得しているためです。
    - 使用したい場合はindex.htmlの該当するコードを抜き取ってください。
    ##### 【RECJ公認】登録番号:A0005
