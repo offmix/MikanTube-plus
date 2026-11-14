@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ja">
+ <html lang="ja">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -521,6 +521,23 @@
       grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 30px 16px;
     }
+    /* YouTube Shorts-like browse grid */
+    .video-grid.shorts-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 34px 16px; }
+    .shorts-grid .video-card { min-width: 0; position: relative; }
+    .shorts-grid .thumb { aspect-ratio: 9 / 16; border-radius: 11px; background: #111; box-shadow: 0 1px 2px #00000012; }
+    .shorts-grid .thumb img { object-fit: cover; transition: transform .22s ease; }
+    .shorts-grid .video-card:hover .thumb img { transform: scale(1.045); }
+    .shorts-grid .thumb::after { content: ""; position: absolute; inset: 42% 0 0; background: linear-gradient(transparent, #0009); pointer-events: none; }
+    .shorts-grid .card-body { display: block; padding: 9px 2px 0; }
+    .shorts-grid .channel-avatar { display: none; }
+    .shorts-grid .card-title { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin: 0 0 5px; font-size: 14px; line-height: 1.4; font-weight: 650; }
+    .shorts-grid .card-meta { display: flex; gap: 5px; align-items: center; color: var(--muted); font-size: 12px; }
+    .shorts-grid .shorts-play-count { position: absolute; z-index: 1; left: 9px; bottom: 10px; color: #fff; font-size: 12px; font-weight: 650; text-shadow: 0 1px 3px #000; }
+    .shorts-grid .shorts-badge { position: absolute; z-index: 1; top: 8px; left: 8px; padding: 4px 7px; border-radius: 5px; color: #fff; background: #0009; font-size: 10px; font-weight: 750; letter-spacing: .2px; }
+    @media (max-width: 1200px) { .video-grid.shorts-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+    @media (max-width: 760px) { .video-grid.shorts-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px 10px; } }
+    @media (max-width: 520px) { .video-grid.shorts-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 9px; } }
+
     .video-card { min-width: 0; cursor: pointer; }
     .thumb {
       position: relative;
@@ -615,7 +632,8 @@
     .watch-page { max-width: 1180px; margin: 0 auto; }
     .watch-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 24px; }
     .player-wrap { position: relative; overflow: hidden; background: #000; border-radius: 12px; aspect-ratio: 16 / 9; }
-    .player-wrap video { width: 100%; height: 100%; display: block; object-fit: contain; background: #000; }
+    .player-wrap video, .player-wrap iframe { width: 100%; height: 100%; display: block; object-fit: contain; background: #000; border: 0; }
+    .player-wrap iframe.hidden { display: none !important; }
     .player-wrap audio { display: none; }
     .player-loading {
       position: absolute;
@@ -1525,6 +1543,190 @@
                   inset 0 0 10px rgba(255,255,255,.16) !important;
     }
 
+  
+    /* YouTube Shorts風の縦型ビューワー */
+    body.shorts-active { background:#0f0f0f; color:#fff; overflow:hidden; }
+    body.shorts-active .sidebar { display:none !important; }
+    body.shorts-active .content { width:100% !important; margin-left:0 !important; }
+    body.shorts-active #watchPage {
+      position:fixed; inset:64px 0 0; z-index:18; width:100%; max-width:none;
+      margin:0; padding:0; overflow:hidden; background:#0f0f0f; color:#fff;
+    }
+    body.shorts-active .watch-page {
+      width:100%; height:100%; max-width:none; margin:0;
+      display:flex; align-items:center; justify-content:center;
+    }
+    body.shorts-active #backButton { display:none; }
+    body.shorts-active .watch-layout {
+      width:100%; height:100%; display:flex; align-items:center; justify-content:center; gap:0;
+    }
+    body.shorts-active .watch-layout > div:first-child {
+      position:relative; width:auto; height:100%; display:flex; align-items:center; justify-content:center;
+    }
+    body.shorts-active .player-wrap {
+      width:min(420px, calc((100dvh - 92px) * 9 / 16));
+      height:min(calc(100dvh - 92px), 746px);
+      aspect-ratio:9 / 16; border-radius:14px; overflow:hidden;
+      background:#000; box-shadow:0 12px 48px #0008;
+    }
+    body.shorts-active .player-wrap video, body.shorts-active .player-wrap iframe { width:100%; height:100%; object-fit:contain; }
+    body.shorts-active .player-toolbar,
+    body.shorts-active .watch-actions,
+    body.shorts-active #watchDescription,
+    body.shorts-active #descriptionToggle,
+    body.shorts-active .comments-section,
+    body.shorts-active .watch-layout > aside { display:none !important; }
+    body.shorts-active #watchTitle {
+      position:fixed; z-index:24; left:max(18px, calc(50% - 210px));
+      bottom:92px; width:min(360px, calc(100vw - 100px)); margin:0;
+      color:#fff; font-size:15px; line-height:1.4; text-shadow:0 1px 5px #000;
+      pointer-events:none;
+    }
+    body.shorts-active .watch-meta {
+      position:fixed; z-index:24; left:max(18px, calc(50% - 210px));
+      bottom:38px; width:min(360px, calc(100vw - 100px)); padding:0;
+      border:0; color:#fff; pointer-events:auto;
+    }
+    body.shorts-active .channel-line { color:#fff; }
+    body.shorts-active .channel-line small { display:none; }
+    body.shorts-active .channel-avatar { border:1px solid #ffffff88; }
+    .shorts-viewer-controls {
+      display:none; position:fixed; z-index:26; top:50%; right:max(12px, calc(50% - 285px));
+      transform:translateY(-50%); flex-direction:column; align-items:center; gap:14px;
+    }
+    body.shorts-active .shorts-viewer-controls { display:flex; }
+    .shorts-viewer-button {
+      width:48px; min-height:48px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+      border:0; border-radius:50%; color:#fff; background:#ffffff20; backdrop-filter:blur(8px); cursor:pointer;
+      font-size:22px; font-weight:700; text-shadow:0 1px 4px #0008; transition:background .15s, transform .15s;
+    }
+    .shorts-viewer-button:hover { background:#ffffff38; transform:scale(1.06); }
+    .shorts-viewer-button:disabled { opacity:.35; cursor:not-allowed; }
+    .shorts-viewer-button small { display:block; font-size:10px; line-height:1.1; font-weight:600; white-space:nowrap; }
+    body.shorts-active #watchTitle {
+      bottom:104px; padding:8px 11px; border-radius:8px;
+      background:linear-gradient(90deg,#000b,#0005); font-size:15px; font-weight:800;
+      text-shadow:0 2px 4px #000;
+    }
+    body.shorts-active .watch-meta {
+      bottom:42px; display:flex; align-items:center; gap:10px;
+      padding:7px 10px; border-radius:28px; background:#0007; backdrop-filter:blur(8px);
+    }
+    body.shorts-active #watchAuthor { font-size:13px; font-weight:700; }
+    body.shorts-active #subscribeButton {
+      min-height:32px; padding:0 13px; border:0; border-radius:18px;
+      color:#111; background:#fff; font-size:12px; font-weight:750;
+    }
+    body.shorts-active .shorts-viewer-button small { pointer-events:none; }
+    .shorts-back-button {
+      position:fixed; z-index:27; top:12px; left:18px; min-height:38px; padding:0 13px;
+      border:1px solid #ffffff35; border-radius:20px; color:#fff;
+      background:#0008; cursor:pointer; backdrop-filter:blur(8px);
+    }
+    body.shorts-active .shorts-back-button { display:block !important; }
+    .shorts-back-button { display:none; }
+    body.shorts-active .topbar { z-index:30; }
+    body.shorts-active .topbar .brand { color:var(--text); }
+    @media (max-width:680px) {
+      body.shorts-active #watchPage { inset:126px 0 0; }
+      body.shorts-active .player-wrap {
+        width:min(calc((100dvh - 138px) * 9 / 16), calc(100vw - 52px));
+        height:min(calc(100dvh - 138px), 720px); border-radius:12px;
+      }
+      body.shorts-active #watchTitle { left:14px; bottom:76px; width:calc(100vw - 88px); font-size:13px; }
+      body.shorts-active .watch-meta { left:14px; bottom:28px; width:calc(100vw - 88px); }
+      .shorts-viewer-controls { right:8px; gap:9px; }
+      .shorts-viewer-button { width:40px; height:40px; }
+      .shorts-back-button { top:138px; left:10px; }
+    }
+    @media (prefers-reduced-motion:reduce) {
+      .shorts-viewer-button { transition:none; }
+    }
+
+
+    /* Shorts viewer controls refresh */
+    .shorts-viewer-button svg,.shorts-volume-control svg,.shorts-player-menu-button svg { width:24px;height:24px;display:block;fill:currentColor; }
+    body.shorts-active .shorts-viewer-controls { display:flex; position:fixed; z-index:36; top:50%; right:max(12px, calc(50% - 390px)); transform:translateY(-50%); gap:13px; }
+    body.shorts-active .shorts-viewer-button { width:46px;height:46px;min-height:46px;display:flex;align-items:center;justify-content:center;gap:2px;background:#0009;border:1px solid #ffffff35;border-radius:50%;color:#fff;backdrop-filter:blur(10px); }
+    body.shorts-active .shorts-viewer-button small { font-size:10px; }
+    .shorts-action-group { display:flex; flex-direction:column;align-items:center;gap:3px;color:#fff;text-shadow:0 1px 4px #000; }
+    .shorts-action-group .shorts-viewer-button { background:transparent!important;border:0!important; }
+    .shorts-navigation-controls { display:none; position:fixed;z-index:36;top:50%;right:max(12px, calc(50% - 590px));transform:translateY(-50%);flex-direction:column;gap:12px; }
+    body.shorts-active .shorts-navigation-controls { display:flex; }
+    .shorts-navigation-controls .shorts-viewer-button { background:#0009; }
+    .shorts-volume-control { display:none;position:absolute;z-index:35;top:14px;left:14px;align-items:center;gap:8px;padding:8px 11px;color:#fff;background:#0009;border-radius:22px;backdrop-filter:blur(10px); }
+    body.shorts-active .shorts-volume-control { display:flex; }
+    .shorts-volume-control input { width:88px;accent-color:#fff;cursor:pointer; }
+    .shorts-player-menu-button { display:none;position:absolute;z-index:37;top:12px;right:12px;width:40px;height:40px;place-items:center;border:1px solid #ffffff44;border-radius:50%;color:#fff;background:#0009;cursor:pointer;backdrop-filter:blur(10px); }
+    body.shorts-active .shorts-player-menu-button { display:grid; }
+    .shorts-player-menu { position:absolute;z-index:38;top:58px;right:12px;min-width:190px;padding:6px;color:#fff;background:#202020f2;border:1px solid #ffffff22;border-radius:12px;box-shadow:0 8px 30px #0008; }
+    .shorts-player-menu button { display:block;width:100%;padding:12px 14px;text-align:left;color:#fff;background:transparent;border:0;border-radius:7px;cursor:pointer; }
+    .shorts-player-menu button:hover { background:#ffffff20; }
+    body.shorts-active .watch-layout { grid-template-columns:minmax(0,1fr); }
+    body.shorts-active .watch-layout > div:first-child { min-width:0; }
+    body.shorts-active .comments-section { display:none!important; }
+    body.shorts-active .watch-meta { bottom:24px; }
+    body.shorts-active #watchTitle { bottom:78px; }
+    .shorts-description-close {
+      display:none; position:fixed; z-index:36; top:calc(17.5vh + 8px);
+      right:max(calc(50% - 270px), 24px); padding:7px 12px;
+      border:1px solid var(--line); border-radius:8px;
+      color:var(--text); background:var(--surface-2);
+      font:inherit; cursor:pointer;
+    }
+    body.shorts-active.shorts-description-open .shorts-description-close { display:block; }
+    body.shorts-active.shorts-description-open #watchDescription {
+      display:block!important;position:fixed!important;z-index:35!important;
+      top:50%;left:50%;transform:translate(-50%,-50%);
+      width:min(560px,calc(100vw - 32px));max-height:min(65vh,560px);
+      overflow:auto;margin:0;padding:20px;color:var(--text);
+      background:var(--surface);border:1px solid var(--line);
+      border-radius:14px;box-shadow:0 18px 60px #0008;
+      pointer-events:auto;text-shadow:none;
+    }
+    /* Shortsコメントは右側ドロワーとして開閉 */
+    body.shorts-active .comments-section {
+      display:block!important;position:fixed!important;z-index:40!important;
+      top:64px;right:0;bottom:0;left:auto;width:min(380px,88vw);
+      overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;
+      -webkit-overflow-scrolling:touch;touch-action:pan-y;
+      margin:0;padding:20px;background:var(--surface);color:var(--text);
+      border-left:1px solid var(--line);border-radius:16px 0 0 16px;
+      box-shadow:-12px 0 35px #0005;
+      transform:translateX(105%);visibility:hidden;pointer-events:none;
+      transition:transform .28s cubic-bezier(.2,.75,.25,1),visibility .28s;
+      will-change:transform;
+    }
+    body.shorts-active.shorts-comments-open .comments-section {
+      transform:translateX(0);visibility:visible;pointer-events:auto;
+    }
+    body.shorts-active.shorts-comments-open .comments-section .comments-list { padding-bottom:24px; }
+    body.shorts-active .shorts-viewer-controls { right:370px; }
+    body.shorts-active .shorts-navigation-controls { right:12px; }
+    body.shorts-active .watch-layout > aside { display:none!important; }
+    body.shorts-active #watchTitle { left:max(18px,calc(50% - 210px)); }
+    body.shorts-active .watch-meta { left:max(18px,calc(50% - 210px)); }
+    @media(max-width:900px) {
+      body.shorts-active .shorts-viewer-controls { right:310px; }
+      body.shorts-active .shorts-navigation-controls { right:8px; }
+      body.shorts-active .comments-section { width:min(360px,88vw); }
+    }
+    @media(max-width:680px) {
+      body.shorts-active .shorts-viewer-controls { right:7px;top:auto;bottom:95px;gap:8px; }
+      body.shorts-active .shorts-viewer-button { width:40px;height:40px;min-height:40px; }
+      body.shorts-active .shorts-viewer-button svg { width:21px;height:21px; }
+      body.shorts-active .shorts-navigation-controls { display:none!important; }
+      body.shorts-active .comments-section {
+        top:126px;right:0;bottom:0;left:auto;width:min(380px,90vw);height:auto;
+        padding:18px 16px calc(18px + env(safe-area-inset-bottom));
+        border:1px solid var(--line);border-right:0;border-radius:16px 0 0 16px;
+        box-shadow:-12px 0 40px #0008;
+      }
+      body.shorts-active #watchTitle { width:calc(100vw - 86px); }
+      body.shorts-active .watch-meta { width:calc(100vw - 86px); }
+      .shorts-volume-control { top:10px;left:10px;padding:6px 8px; }
+      .shorts-volume-control input { width:65px; }
+    }
   </style>
 </head>
 <body>
@@ -1589,6 +1791,7 @@
       <nav>
         <div class="nav-section">
           <button class="nav-item active" data-route="home" type="button"><svg class="icon"><use href="#i-home"></use></svg><span class="nav-label">ホーム</span></button>
+          <button class="nav-item" data-route="shorts" type="button"><svg class="icon"><use href="#i-play"></use></svg><span class="nav-label">ショート</span></button>
           <button class="nav-item" data-route="news" type="button"><svg class="icon"><use href="#i-news"></use></svg><span class="nav-label">ニュース</span></button>
           <button class="nav-item" data-route="music" type="button"><svg class="icon"><use href="#i-music"></use></svg><span class="nav-label">ミュージック</span></button>
         </div>
@@ -1645,6 +1848,7 @@
           <button class="chip" data-query="料理" type="button">料理</button>
           <button class="chip" data-query="テクノロジー" type="button">テクノロジー</button>
           <button class="chip" data-query="学習" type="button">学習</button>
+          <button class="chip" data-shorts="true" type="button">ショート</button>
           <a class="news-feed-ticker" id="newsFeedTicker" href="#" target="_blank" rel="noopener noreferrer" aria-label="Googleニュースフィード">
             <span class="news-feed-ticker-label">NEWS</span>
             <span class="news-feed-ticker-track"><span class="news-feed-ticker-text" id="newsFeedTickerText">Googleニュースを読み込み中...</span></span>
@@ -1684,7 +1888,12 @@
           <div class="watch-layout">
             <div>
               <div class="player-wrap">
+                <div class="shorts-volume-control" id="shortsVolumeControl"><svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 4V5L7 9H3zm13.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4zm-2.5-9v2.1a7 7 0 0 1 0 13.8V21a9 9 0 0 0 0-18z"/></svg><input id="shortsVolumeSlider" type="range" min="0" max="1" step="0.01" value="1" aria-label="音量"></div>
+                <button class="shorts-player-menu-button" id="shortsPlayerMenuButton" type="button" aria-label="その他"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg></button>
+                <div class="shorts-player-menu hidden" id="shortsPlayerMenu"><button type="button" id="shortsDescriptionMenu">概要</button><button type="button" id="shortsPlaylistMenu">再生リストに保存</button></div>
+                <button id="shortsMuteButton" class="hidden" type="button" aria-hidden="true" tabindex="-1"></button>
                 <video id="player" controls playsinline preload="metadata"></video>
+                <iframe id="noCookiePlayer" class="hidden" title="YouTube動画プレイヤー" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
                 <audio id="audioPlayer" preload="auto"></audio>
                 <div class="player-loading hidden" id="playerLoading" aria-live="polite">
                   <div class="loading-content">
@@ -1714,6 +1923,7 @@
                 </div>
               </div>
               <div class="description" id="watchDescription"></div>
+              <button class="shorts-description-close" id="shortsDescriptionClose" type="button" aria-label="概要を閉じる">閉じる</button>
               <button class="description-toggle" id="descriptionToggle" type="button" aria-expanded="false">全部を見る</button>
               <section class="comments-section" id="commentsSection" aria-labelledby="commentsHeading">
                 <div class="comments-header"><h2 id="commentsHeading">コメント</h2></div>
@@ -1726,6 +1936,20 @@
                <h2 class="side-title" id="sideTitle">次の動画</h2>
               <div class="side-list" id="nextList"></div>
             </aside>
+          </div>
+          <button class="shorts-back-button" id="shortsBackButton" type="button">← ショート一覧</button>
+          <div class="shorts-viewer-controls" id="shortsViewerControls" aria-label="Shorts controls">
+            <div class="shorts-action-group shorts-like-group">
+              <button class="shorts-viewer-button" id="shortsLikeButton" type="button" aria-label="いいね数"><svg viewBox="0 0 24 24"><path d="M7 10v11H3V10h4zm3 11h7.2a2 2 0 0 0 1.9-1.4l2.1-7A2 2 0 0 0 19.3 10H14l.8-4.1A2.5 2.5 0 0 0 12.4 3L7 10v11h3z"/></svg></button>
+              <small id="shortsLikeCount">—</small>
+            </div>
+            <button class="shorts-viewer-button" id="shortsCommentsButton" type="button" aria-label="コメント"><svg viewBox="0 0 24 24"><path d="M4 4h16v12H8l-4 4V4zm4 4v2h8V8H8zm0 4v2h5v-2H8z"/></svg><small>コメント</small></button>
+            <button class="shorts-viewer-button" id="shortsShareButton" type="button" aria-label="共有"><svg viewBox="0 0 24 24"><path d="M18 16a3 3 0 0 0-2.6 1.5l-6.8-3.9a3.2 3.2 0 0 0 0-3.2l6.8-3.9A3 3 0 1 0 14.5 5l-6.8 3.9a3 3 0 1 0 0 6.2l6.8 3.9A3 3 0 1 0 18 16z"/></svg><small>共有</small></button>
+            <button class="shorts-viewer-button" id="shortsDownloadButton" type="button" aria-label="ダウンロード"><svg viewBox="0 0 24 24"><path d="M11 3h2v10l3.5-3.5 1.4 1.4L12 17l-5.9-6.1 1.4-1.4L11 13V3zM4 19h16v2H4z"/></svg><small>DL</small></button>
+          </div>
+          <div class="shorts-navigation-controls" id="shortsNavigationControls">
+            <button class="shorts-viewer-button" id="shortsPrevButton" type="button" aria-label="前のショート"><svg viewBox="0 0 24 24"><path d="m12 5-7 7 7 7 1.4-1.4L8.8 13H20v-2H8.8l4.6-4.6L12 5z"/></svg></button>
+            <button class="shorts-viewer-button" id="shortsNextButton" type="button" aria-label="次のショート"><svg viewBox="0 0 24 24"><path d="m12 19 7-7-7-7-1.4 1.4 4.6 4.6H4v2h11.2l-4.6 4.6L12 19z"/></svg></button>
           </div>
         </div>
       </section>
@@ -1861,11 +2085,35 @@
       <div class="settings-group">
         <div class="settings-row">
           <div>
+            <span class="settings-label">YouTube.jsだけで検索</span>
+            <p class="settings-help">検索結果はYouTube.js APIから取得します。動画を開いた後の詳細・再生・コメントは従来のInv / Piped APIを使用します。</p>
+          </div>
+          <label class="switch" aria-label="YouTube.jsだけで検索">
+            <input id="useYouTubeJsToggle" type="checkbox">
+            <span class="switch-track"></span>
+          </label>
+        </div>
+      </div>
+      <div class="settings-group">
+        <div class="settings-row">
+          <div>
             <span class="settings-label">Invだけ使用</span>
             <p class="settings-help">Invidious APIだけを使用します。Piped APIは試行しません。</p>
           </div>
           <label class="switch" aria-label="Invだけ使用">
             <input id="invOnlyToggle" type="checkbox">
+            <span class="switch-track"></span>
+          </label>
+        </div>
+      </div>
+      <div class="settings-group">
+        <div class="settings-row">
+          <div>
+            <span class="settings-label">No Cookie再生を使用する</span>
+            <p class="settings-help">YouTubeのプライバシー強化モード（youtube-nocookie.com）の埋め込みプレイヤーで再生します。通常の動画ストリーム取得を使わず、Shortsにも対応します。</p>
+          </div>
+          <label class="switch" aria-label="No Cookie再生を使用する">
+            <input id="noCookiePlaybackToggle" type="checkbox">
             <span class="switch-track"></span>
           </label>
         </div>
@@ -1912,7 +2160,7 @@
   <section class="music-player-bar hidden" id="musicPlayerBar" aria-label="ミュージックプレイヤー">
     <div class="music-seek-row"><span class="music-time" id="musicElapsed">0:00</span><input id="musicSeek" type="range" min="0" max="1000" value="0" aria-label="再生位置"><span class="music-time" id="musicDuration">0:00</span></div>
     <div class="music-player-main">
-      <div class="music-track-info"><img id="musicTrackThumb" src="" alt="" loading="lazy"><div class="music-track-copy"><strong id="musicTrackTitle">曲名</strong><span id="musicTrackChannel">チャンネル名</span></div></div>
+      <div class="music-track-info"><img id="musicTrackThumb"src="" alt="" loading="lazy"><div class="music-track-copy"><strong id="musicTrackTitle">曲名</strong><span id="musicTrackChannel">チャンネル名</span></div></div>
       <div class="music-playback-controls">
         <button class="music-control-button" id="musicBackButton" type="button" aria-label="10秒巻き戻し"><svg class="icon"><use href="#i-rewind10"></use></svg></button>
         <button class="music-control-button music-play-button" id="musicPlayPauseButton" type="button" aria-label="再生"><svg class="icon large"><use id="musicPlayPauseIcon" href="#i-play"></use></svg></button>
@@ -2024,6 +2272,7 @@
     const PIPED_COMMENT_PAGES = new Map();
     const MIKANTUBE_CURSORS = new Map();
     const GAS_API = "https://script.google.com/macros/s/AKfycbz8rfsBRtnIN_sxMBIbmg2vq2nuEVf-Wa6aJWoDd21wM609inPo-T4A-40JgeHOhOOhhA/exec";
+    const YOUTUBE_JS_API = "https://mikantubeplus-api.off-mix.workers.dev";
     const HEALTH_KEY = "mikan-tube-instance-health";
     const HISTORY_KEY = "mikan-tube-history";
     const MUSIC_HISTORY_KEY = "mikan-tube-music-history";
@@ -2093,7 +2342,11 @@
       playbackGeneration: 0,
       commentsGeneration: 0,
       commentContinuation: "",
-      commentContinuationProvider: null
+      commentContinuationProvider: null,
+      shortsContinuation: "",
+      shortsLoadingMore: false,
+      shortsHasMore: false,
+      shortsSeenIds: new Set()
     };
 
     let channelSearchTimer = null;
@@ -2150,9 +2403,9 @@
 
     function readSettings() {
       try {
-        return { theme: "light", tabPreset: "classroom", customTitle: "", customFavicon: "", personalizedRecommendations: false, autoPlay: false, apiMode: "auto", useMikanTubeApi: false, newsAgeValue: 30, newsAgeUnit: "day", ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}") };
+        return { theme: "light", tabPreset: "classroom", customTitle: "", customFavicon: "", personalizedRecommendations: false, autoPlay: false, apiMode: "auto", useMikanTubeApi: false, newsAgeValue: 30, useYouTubeJs: false, noCookiePlayback: false, newsAgeUnit: "day", ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}") };
       } catch (_) {
-        return { theme: "light", tabPreset: "classroom", customTitle: "", customFavicon: "", personalizedRecommendations: false, autoPlay: false, apiMode: "auto", useMikanTubeApi: false, newsAgeValue: 30, newsAgeUnit: "day" };
+        return { theme: "light", tabPreset: "classroom", customTitle: "", customFavicon: "", personalizedRecommendations: false, autoPlay: false, apiMode: "auto", useMikanTubeApi: false, newsAgeValue: 30, useYouTubeJs: false, noCookiePlayback: false, newsAgeUnit: "day" };
       }
     }
 
@@ -2176,6 +2429,8 @@
       $("#pipedOnlyToggle").checked = settings.apiMode === "piped";
       $("#useMikanTubeApiToggle").checked = settings.useMikanTubeApi === true;
       $("#invOnlyToggle").checked = settings.apiMode === "invidious";
+      $("#useYouTubeJsToggle").checked = settings.apiMode === "youtubejs" || settings.useYouTubeJs === true;
+      $("#noCookiePlaybackToggle").checked = settings.noCookiePlayback === true;
       $("#channelCommunityTab").classList.toggle("hidden", settings.useMikanTubeApi !== true);
       $("#newsAgeValue").value = settings.newsAgeValue ?? 30;
       $("#newsAgeUnit").value = settings.newsAgeUnit || "day";
@@ -2193,8 +2448,10 @@
         customFavicon: $("#customFaviconUrl").value,
         personalizedRecommendations: $("#personalizedRecommendationsToggle").checked,
         autoPlay: $("#autoPlaySettingsToggle").checked,
-        apiMode: $("#pipedOnlyToggle").checked ? "piped" : $("#invOnlyToggle").checked ? "invidious" : "auto",
+        apiMode: $("#useYouTubeJsToggle").checked ? "youtubejs" : $("#pipedOnlyToggle").checked ? "piped" : $("#invOnlyToggle").checked ? "invidious" : "auto",
         useMikanTubeApi: $("#useMikanTubeApiToggle").checked,
+        useYouTubeJs: $("#useYouTubeJsToggle").checked,
+        noCookiePlayback: $("#noCookiePlaybackToggle").checked,
         ...getNewsAgeSettings()
       };
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
@@ -2206,6 +2463,8 @@
     function isLive(item) {
       const title = String(item.title || "");
       const type = String(item.type || "").toLowerCase();
+      const hasDuration = item.lengthSeconds !== null && item.lengthSeconds !== undefined && item.lengthSeconds !== ""
+        || item.length !== null && item.length !== undefined && item.length !== "";
       const duration = Number(item.lengthSeconds ?? item.length ?? 0);
       const liveTitle = /ライブ|生配信|配信中|\blive\b|\blivestream\b/i.test(title);
       const isVideoType = !type || type === "video";
@@ -2213,7 +2472,7 @@
         || item.liveNow === true || item.isLive === true || item.live === true
         || String(item.liveNow).toLowerCase() === "true"
         || type === "live" || liveTitle
-        || duration === 0;
+        || (hasDuration && duration === 0);
     }
 
     function withoutLive(items) {
@@ -3070,6 +3329,137 @@
       };
     }
 
+    async function fetchYouTubeJsSearch(path, signal) {
+      const url = new URL(path, "https://mikan-tube.invalid");
+      const query = (url.searchParams.get("q") || "").trim();
+      if (!query) return { videos: [], items: [], continuation: "" };
+
+      const endpoint = new URL("/search", YOUTUBE_JS_API);
+      endpoint.searchParams.set("q", query);
+      const controller = new AbortController();
+      const abort = () => controller.abort();
+      if (signal.aborted) abort();
+      else signal.addEventListener("abort", abort, { once: true });
+
+      const timeout = setTimeout(() => controller.abort(), 12000);
+      try {
+        const response = await fetch(endpoint.href, {
+          method: "GET",
+          signal: controller.signal,
+          headers: { "Accept": "application/json" }
+        });
+        if (!response.ok) throw new Error(`YouTube.js API HTTP ${response.status}`);
+        const payload = await response.json();
+        if (payload?.success !== true || !Array.isArray(payload.results)) {
+          throw new Error(payload?.message || payload?.error || "YouTube.js APIの応答形式が不正です");
+        }
+
+        const videos = payload.results
+          .filter((entry) => {
+            const id = String(entry?.id || "");
+            const type = String(entry?.type || "").toLowerCase();
+            return /^[a-zA-Z0-9_-]{11}$/.test(id) && (!type || type === "video");
+          })
+          .map((entry) => {
+            const id = String(entry.id);
+            const title = typeof entry.title === "string"
+              ? entry.title
+              : (entry.title?.text || "タイトルなし");
+            return {
+              videoId: id,
+              id,
+              title,
+              author: "YouTube",
+              authorId: "",
+              authorUrl: "",
+              authorThumbnails: [],
+              type: "video",
+              viewCount: 0,
+              publishedText: "",
+              lengthSeconds: null,
+              videoThumbnails: [
+                { quality: "high", url: `https://i.ytimg.com/vi/${id}/hqdefault.jpg` },
+                { quality: "medium", url: `https://i.ytimg.com/vi/${id}/mqdefault.jpg` }
+              ],
+              description: ""
+            };
+          });
+
+        if (!videos.length) throw new Error("YouTube.js APIから動画が見つかりませんでした");
+        return { videos, items: videos, continuation: "" };
+      } catch (error) {
+        if (signal.aborted) {
+          const aborted = new Error("操作を中断しました");
+          aborted.name = "AbortError";
+          throw aborted;
+        }
+        if (error.name === "AbortError") throw new Error("YouTube.js APIがタイムアウトしました");
+        throw error;
+      } finally {
+        clearTimeout(timeout);
+        signal.removeEventListener("abort", abort);
+      }
+    }
+
+    function parseShortViewCount(value) {
+      if (typeof value === "number" && Number.isFinite(value)) return value;
+      const text = String(value ?? "").replace(/,/g, "").trim();
+      if (!text) return 0;
+      const match = text.match(/([0-9]+(?:\\.[0-9]+)?)\\s*(億|万|千|B|M|K)?/i);
+      if (!match) return 0;
+      const amount = Number(match[1]);
+      const unit = String(match[2] || "").toUpperCase();
+      const multiplier = unit === "億" ? 100000000
+        : unit === "万" ? 10000
+        : unit === "千" ? 1000
+        : unit === "B" ? 1000000000
+        : unit === "M" ? 1000000
+        : unit === "K" ? 1000 : 1;
+      return Math.round(amount * multiplier);
+    }
+
+    async function fetchYouTubeJsShorts(query = "ショート", signal = new AbortController().signal, continuation = "") {
+      const endpoint = new URL("/shorts", YOUTUBE_JS_API);
+      endpoint.searchParams.set("q", query || "ショート");
+      if (continuation) endpoint.searchParams.set("continuation", continuation);
+      const controller = new AbortController();
+      const abort = () => controller.abort();
+      if (signal.aborted) abort();
+      else signal.addEventListener("abort", abort, { once: true });
+      const timeout = setTimeout(() => controller.abort(), 15000);
+      try {
+        const response = await fetch(endpoint.href, { method: "GET", signal: controller.signal, headers: { "Accept": "application/json" } });
+        if (!response.ok) throw new Error(`YouTube.js Shorts API HTTP ${response.status}`);
+        const payload = await response.json();
+        if (payload?.success !== true || !Array.isArray(payload.results)) throw new Error(payload?.message || payload?.error || "Shorts APIの応答形式が不正です");
+        const videos = payload.results.filter((entry) => /^[a-zA-Z0-9_-]{11}$/.test(String(entry?.id || ""))).map((entry) => {
+          const id = String(entry.id);
+          const title = typeof entry.title === "string" ? entry.title : (entry.title?.text || "タイトルなし");
+          return {
+            videoId: id, id, title,
+            author: entry.author || entry.authorName || "YouTube",
+            authorId: entry.authorId || "", authorUrl: entry.authorUrl || "", authorThumbnails: [],
+            type: "video", viewCount: parseShortViewCount(entry.viewCount || entry.view_count || 0),
+            publishedText: entry.publishedText || entry.published || "", lengthSeconds: entry.lengthSeconds || entry.duration || null,
+            videoThumbnails: entry.thumbnail ? [{ quality: "high", url: entry.thumbnail }] : [
+              { quality: "high", url: `https://i.ytimg.com/vi/${id}/hqdefault.jpg` },
+              { quality: "medium", url: `https://i.ytimg.com/vi/${id}/mqdefault.jpg` }
+            ], description: entry.description || ""
+          };
+        });
+        if (!videos.length && !payload.continuation) throw new Error("Shortsの検索結果がありませんでした");
+        return { videos, items: videos, continuation: payload.continuation || payload.continuationToken || payload.nextPageToken || "" };
+      } catch (error) {
+        if (signal.aborted || error.name === "AbortError") {
+          const aborted = new Error("操作を中断しました"); aborted.name = "AbortError"; throw aborted;
+        }
+        throw error;
+      } finally {
+        clearTimeout(timeout);
+        signal.removeEventListener("abort", abort);
+      }
+    }
+
     async function api(path, options = {}) {
       const lane = options.lane || "main";
       state.abortControllers[lane]?.abort();
@@ -3080,7 +3470,28 @@
       const excludedProviders = options.excludedProviders instanceof Set ? options.excludedProviders : new Set();
       if (lane === "main") state.lastApiProvider = null;
       setStatus("busy", "接続中");
-      const mikanTubeSpec = readSettings().useMikanTubeApi === true && !options.skipMikanTubeApi
+      const settingsAtRequest = readSettings();
+      const isSearchRequest = /^\/?search(?:\?|$)/.test(String(path));
+      const searchPage = Number(new URL(path, "https://mikan-tube.invalid").searchParams.get("page") || 1);
+      if (settingsAtRequest.apiMode === "youtubejs" && isSearchRequest && searchPage <= 1 && !options.skipYouTubeJs) {
+        try {
+          const result = await fetchYouTubeJsSearch(path, signal);
+          if (signal.aborted) {
+            const aborted = new Error("操作を中断しました");
+            aborted.name = "AbortError";
+            throw aborted;
+          }
+          if (lane === "main") state.lastApiProvider = { kind: "youtubejs", instance: YOUTUBE_JS_API };
+          setStatus("", "YouTube.jsで検索");
+          return result;
+        } catch (error) {
+          if (error.name === "AbortError") throw error;
+          setStatus("error", "YouTube.js検索に失敗");
+          throw error;
+        }
+      }
+      // ShortsのコメントはInvidious固定。GAS/Pipedへは流さない。
+      const mikanTubeSpec = !options.invidiousOnly && readSettings().useMikanTubeApi === true && !options.skipMikanTubeApi
         ? mikanTubeRequestSpec(path)
         : null;
       if (mikanTubeSpec) {
@@ -3169,7 +3580,7 @@
         }
       };
       const apiMode = readSettings().apiMode || "auto";
-      if (apiMode === "piped") {
+      if (!options.invidiousOnly && apiMode === "piped") {
         const pipedResult = await tryPiped();
         if (pipedResult) {
           setStatus("", "Piped APIのみで接続");
@@ -3178,7 +3589,7 @@
         setStatus("error", "Piped APIに接続できません");
         throw new Error(errors.join(" / ") || "Pipedだけを使用する設定ですが、利用可能なPipedインスタンスがありません");
       }
-      if (apiMode !== "invidious" && options.preferPiped) {
+      if (!options.invidiousOnly && apiMode !== "invidious" && options.preferPiped) {
         const pipedResult = await tryPiped();
         if (pipedResult) {
           setStatus("", "Piped APIへ自動接続");
@@ -3197,7 +3608,7 @@
         rememberInstance(result.instance);
         if (lane === "main") state.lastApiProvider = { kind: "invidious", instance: result.instance };
         if (lane === "comments") state.commentContinuationProvider = { kind: "invidious", instance: result.instance };
-        setStatus("", "自動接続");
+        setStatus("", options.invidiousOnly ? "Invidiousでコメント取得" : "自動接続");
         return result.data;
       } catch (error) {
         if (signal.aborted) {
@@ -3208,7 +3619,7 @@
         const reasons = error.errors || [error];
         errors.push(...reasons.map((reason) => reason.message).filter(Boolean));
       }
-      if (apiMode === "auto" && !options.preferPiped) {
+      if (!options.invidiousOnly && apiMode === "auto" && !options.preferPiped) {
         const pipedResult = await tryPiped();
         if (pipedResult) {
           setStatus("", "Piped APIへ自動接続");
@@ -3502,7 +3913,7 @@
         viewCount: item.viewCount || item.views || 0,
         publishedText: item.publishedText || "",
         published: item.published ?? item.publishedTimestamp ?? item.publishedAt ?? item.uploadDate ?? item.publishedDate ?? null,
-        lengthSeconds: item.lengthSeconds || item.length || 0,
+        lengthSeconds: item.lengthSeconds ?? item.length ?? null,
         videoThumbnails: item.videoThumbnails || [],
         description: item.description || item.descriptionText || item.descriptionHtml || "",
       };
@@ -3650,6 +4061,15 @@
     function cardHtml(rawItem, compact = false) {
       const item = normalizeItem(rawItem);
       if (!item.videoId) return "";
+      if (state.route === "shorts") return `
+        <article class="video-card shorts-card" data-video-id="${escapeHtml(item.videoId)}" data-shorts-url="https://www.youtube.com/shorts/${escapeHtml(item.videoId)}" tabindex="0" role="button" aria-label="ショート ${escapeHtml(item.title)}を再生">
+          <div class="thumb">
+            <img src="${escapeHtml(thumbnail(item))}" loading="lazy" alt="" onerror="handleThumbnailError(this)">
+            <span class="shorts-badge">▶ SHORTS</span>
+            ${item.viewCount ? `<span class="shorts-play-count">▶ ${formatCount(item.viewCount)} 回視聴</span>` : ""}
+          </div>
+          <div class="card-body"><h3 class="card-title">${escapeHtml(item.title)}</h3><div class="card-meta"><span class="channel-name">${escapeHtml(item.author || "YouTube")}</span>${item.publishedText ? `<span>· ${escapeHtml(item.publishedText)}</span>` : ""}</div></div>
+        </article>`;
       if (state.route === "music" || state.route === "music-history") return `
         <article class="video-card music-card" data-video-id="${escapeHtml(item.videoId)}" tabindex="0" role="button" aria-label="${escapeHtml(item.title)}を再生">
           <div class="thumb"><img src="${escapeHtml(thumbnail(item))}" loading="lazy" alt="" onerror="handleThumbnailError(this)"></div>
@@ -3702,7 +4122,14 @@
       root.querySelectorAll(".video-card[data-video-id]").forEach((card) => {
         const playlistRow = card.closest("[data-playlist-id]");
         const playlistIndex = playlistRow && playlistRow.dataset.playlistIndex !== undefined ? Number(playlistRow.dataset.playlistIndex) : -1;
-        const open = () => openVideo(card.dataset.videoId, playlistRow?.dataset.playlistId || "", state.route === "music" || state.route === "music-history", playlistIndex);
+        const open = () => {
+          if (state.route === "shorts") {
+            const items = state.shortsItems || state.homeItems || [];
+            const index = items.findIndex((item) => item.videoId === card.dataset.videoId);
+            return playShortAt(index >= 0 ? index : 0);
+          }
+          return openVideo(card.dataset.videoId, playlistRow?.dataset.playlistId || "", state.route === "music" || state.route === "music-history", playlistIndex);
+        };
         card.addEventListener("click", open);
         card.addEventListener("keydown", (event) => {
           if (event.key === "Enter" || event.key === " ") { event.preventDefault(); open(); }
@@ -3717,7 +4144,10 @@
           <div><h2>${escapeHtml(title)}</h2><p>${escapeHtml(message)}</p>
           ${retry ? `<button class="retry-button" id="retryButton" type="button">再試行</button>` : ""}</div>
         </div>`;
-      $("#retryButton")?.addEventListener("click", () => state.route === "music" ? loadMusic(state.musicCategory) : loadHome(state.lastPath, $("#pageHeading").textContent));
+      $("#retryButton")?.addEventListener("click", () => state.route === "music"
+        ? loadMusic(state.musicCategory)
+        : state.route === "shorts" ? loadShorts(state.shortsQuery || "ショート")
+        : loadHome(state.lastPath, $("#pageHeading").textContent));
     }
 
     function withPage(path, page) {
@@ -3736,7 +4166,7 @@
     }
 
     function renderHomeItems() {
-      $("#videoGrid").className = "video-grid";
+      $("#videoGrid").className = state.route === "shorts" ? "video-grid shorts-grid" : "video-grid";
       const items = state.route === "channel" ? channelItemsForView() : state.homeItems;
       $("#videoGrid").innerHTML = items.length
         ? items.map((item) => cardHtml(item)).join("")
@@ -4020,6 +4450,122 @@
       renderHomeItems();
       history.replaceState(null, "", hash || "#home");
       window.requestAnimationFrame(() => window.scrollTo({ top: Math.max(0, Number(snapshot.scrollY) || 0), behavior: "instant" }));
+    }
+
+    async function loadShorts(query = "ショート") {
+      document.body.classList.remove("music-active", "shorts-active");
+      state.shortsPlayback = false;
+      stopPlayback();
+      state.route = "shorts";
+      state.shortsQuery = query || "ショート";
+      state.shortsItems = [];
+      state.shortsContinuation = "";
+      state.shortsLoadingMore = false;
+      state.shortsHasMore = false;
+      state.shortsSeenIds = new Set();
+      state.lastPath = `shorts?q=${encodeURIComponent(state.shortsQuery)}`;
+      state.homePage = 1;
+      state.homeItems = [];
+      state.homePool = [];
+      state.homeLoading = false;
+      state.watchPlaylistId = null;
+      state.channelData = null;
+      $("#clearHistoryButton").classList.add("hidden");
+      $("#channelHeader").classList.add("hidden");
+      $("#channelDashboard").classList.add("hidden");
+      $("#chips").classList.add("hidden");
+      $("#musicFilterBar").classList.add("hidden");
+      $("#homePage").classList.remove("hidden");
+      $("#watchPage").classList.add("hidden");
+      $("#playlistPage").classList.add("hidden");
+      $("#messagePage").classList.add("hidden");
+      $("#pageHeading").textContent = "ショート";
+      $("#pageSubheading").textContent = "YouTube.jsでShortsだけを検索中…";
+      $("#videoGrid").className = "video-grid shorts-grid";
+      $("#loadMoreWrap").classList.remove("hidden");
+      $("#loadMoreButton").classList.remove("hidden");
+      $("#loadMoreButton").disabled = true;
+      $("#loadMoreButton").textContent = "ショートを取得中…";
+      $("#loadAllButton").classList.add("hidden");
+      renderSkeleton(12);
+      history.replaceState(null, "", `#shorts?q=${encodeURIComponent(state.shortsQuery)}`);
+      try {
+        const result = await fetchYouTubeJsShorts(state.shortsQuery, new AbortController().signal);
+        state.lastItems = uniqueVideoItems(result.videos || []);
+        state.homeItems = state.lastItems.slice();
+        state.shortsItems = state.homeItems.slice();
+        state.shortsItems.forEach(item => state.shortsSeenIds.add(item.videoId));
+        state.shortsContinuation = result.continuation || "";
+        state.shortsHasMore = Boolean(state.shortsContinuation);
+        if (!state.homeItems.length) throw new Error("ショート動画が見つかりませんでした");
+        $("#pageSubheading").textContent = `${state.homeItems.length} 件のショート動画`;
+        $("#loadMoreWrap").classList.toggle("hidden", !state.shortsHasMore);
+        $("#loadMoreButton").disabled = false;
+        $("#loadMoreButton").textContent = state.shortsHasMore ? "さらにショートを読み込む" : "これ以上のショートはありません";
+        renderHomeItems();
+        $("#loadMoreWrap").classList.toggle("hidden", !state.shortsHasMore);
+      } catch (error) {
+        if (error.name === "AbortError") return;
+        $("#loadMoreWrap").classList.add("hidden");
+        showEmpty("ショートを取得できません", error.message || "YouTube.js Shorts APIに接続できませんでした。");
+      }
+    }
+
+    async function loadMoreShorts() {
+      if (state.route !== "shorts" || state.shortsLoadingMore || !state.shortsContinuation) return;
+      state.shortsLoadingMore = true;
+      const button = $("#loadMoreButton");
+      button.disabled = true;
+      button.textContent = "読み込み中…";
+      try {
+        const result = await fetchYouTubeJsShorts(state.shortsQuery || "ショート", new AbortController().signal, state.shortsContinuation);
+        const fresh = (result.videos || []).filter(item => item.videoId && !state.shortsSeenIds.has(item.videoId));
+        fresh.forEach(item => state.shortsSeenIds.add(item.videoId));
+        state.shortsItems = [...state.shortsItems, ...fresh];
+        state.homeItems = state.shortsItems.slice();
+        state.lastItems = state.shortsItems.slice();
+        state.shortsContinuation = result.continuation || "";
+        state.shortsHasMore = Boolean(state.shortsContinuation);
+        $("#pageSubheading").textContent = `${state.shortsItems.length} 件のショート動画`;
+        renderHomeItems();
+        $("#loadMoreWrap").classList.toggle("hidden", !state.shortsHasMore);
+        button.textContent = state.shortsHasMore ? (fresh.length ? "さらにショートを読み込む" : "続きの取得を再試行") : "これ以上のショートはありません";
+        if (!fresh.length && state.shortsHasMore) showToast("新しい動画がありませんでした");
+      } catch (error) {
+        if (error.name !== "AbortError") showToast(error.message || "追加取得に失敗しました");
+        button.textContent = "再試行";
+      } finally {
+        state.shortsLoadingMore = false;
+        button.disabled = false;
+      }
+    }
+
+    function updateShortsLikeCount(item, raw = null) {
+      const value = raw?.likeCount ?? raw?.likes ?? item?.likeCount ?? item?.likes ?? item?.like_count ?? null;
+      $("#shortsLikeCount").textContent = value == null ? "—" : formatCount(value);
+      $("#shortsLikeButton").title = value == null ? "いいね数は取得できません" : `いいね ${formatCount(value)}`;
+    }
+
+    function playShortAt(index) {
+      const items = state.shortsItems || state.homeItems || [];
+      if (!items.length) return;
+      const nextIndex = Math.max(0, Math.min(items.length - 1, Number(index) || 0));
+      const item = items[nextIndex];
+      if (!item?.videoId) return;
+      state.shortsPlaybackIndex = nextIndex;
+      state.shortsPlayback = true;
+      openVideo(item.videoId, "", false, -1, true);
+    }
+
+    function moveShort(delta) {
+      const items = state.shortsItems || [];
+      if (!items.length) return;
+      const next = Number(state.shortsPlaybackIndex || 0) + delta;
+      if (next < 0 || next >= items.length) {
+        showToast(next < 0 ? "最初のショートです" : "最後のショートです");
+        return;
+      }
+      playShortAt(next);
     }
 
     async function loadHome(path = "trending?region=JP", heading = "おすすめの動画", hash = null, newsMode = false) {
@@ -5098,7 +5644,13 @@
     function stopPlayback() {
       const player = $("#player");
       const audio = $("#audioPlayer");
+      const noCookiePlayer = $("#noCookiePlayer");
       state.playbackGeneration += 1;
+      if (noCookiePlayer) {
+        noCookiePlayer.src = "about:blank";
+        noCookiePlayer.classList.add("hidden");
+      }
+      if (player) player.classList.remove("hidden");
       state.watchPlaylistIndex = -1;
       if (player) {
         player.pause();
@@ -5112,7 +5664,7 @@
       }
       state.currentVideo = null;
       state.musicPlayback = false;
-      document.body.classList.remove("music-active", "music-playing");
+      document.body.classList.remove("music-active", "music-playing", "shorts-active");
       $("#musicPlayerBar")?.classList.add("hidden");
       $("#musicFilterBar")?.classList.add("hidden");
       state.currentStreams = [];
@@ -5122,6 +5674,7 @@
       state.downloadStream = null;
       state.downloadAudioStream = null;
       state.playbackRetry = null;
+      state.shortsPlayback = false;
       state.lastApiProvider = null;
       state.playbackRequested = false;
       stopMusicVisualizer();
@@ -5300,6 +5853,12 @@
     function setPlayerStream(stream, preservePosition = false, forceResume = false) {
       const player = $("#player");
       const audio = $("#audioPlayer");
+      const noCookiePlayer = $("#noCookiePlayer");
+      if (noCookiePlayer) {
+        noCookiePlayer.src = "about:blank";
+        noCookiePlayer.classList.add("hidden");
+      }
+      player.classList.remove("hidden");
       const generation = ++state.playbackGeneration;
       const wasPlaying = forceResume || (!player.paused && !player.ended);
       const currentTime = preservePosition ? player.currentTime : 0;
@@ -5545,13 +6104,22 @@
       button.disabled = true;
       button.textContent = "読み込み中…";
       try {
-        const params = new URLSearchParams({ source: "youtube", sort_by: "top" });
+        const isShortsComment = Boolean(state.shortsPlayback);
+        const expectedRoute = isShortsComment ? "shorts-watch" : "watch";
+        const params = new URLSearchParams(isShortsComment
+          ? { sort_by: "top" }
+          : { source: "youtube", sort_by: "top" });
         if (continuation) params.set("continuation", continuation);
+        const previousCommentProvider = state.commentContinuationProvider;
         const data = await api("comments/" + encodeURIComponent(videoId) + "?" + params.toString(), {
           lane: "comments",
-          maxInstances: 12
+          maxInstances: 12,
+          invidiousOnly: isShortsComment,
+          preferredInstance: isShortsComment && continuation && previousCommentProvider?.kind === "invidious"
+            ? previousCommentProvider.instance
+            : ""
         });
-        if (requestId !== state.commentsGeneration || state.route !== "watch" || state.currentVideo?.videoId !== videoId) return;
+        if (requestId !== state.commentsGeneration || state.route !== expectedRoute || state.currentVideo?.videoId !== videoId) return;
         const comments = Array.isArray(data) ? data : (Array.isArray(data?.comments) ? data.comments : []);
         const nextContinuation = typeof data?.continuation === "string" ? data.continuation : "";
         if (comments.length) list.insertAdjacentHTML("beforeend", comments.map(renderComment).join(""));
@@ -5643,11 +6211,108 @@
       $("#descriptionToggle").setAttribute("aria-expanded", String(expanded));
     });
 
+    function buildNoCookieEmbedUrl(videoId, autoplay = false) {
+      const embed = new URL(`https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}`);
+      embed.searchParams.set("playsinline", "1");
+      embed.searchParams.set("rel", "0");
+      embed.searchParams.set("controls", "1");
+      embed.searchParams.set("autoplay", autoplay ? "1" : "0");
+      embed.searchParams.set("enablejsapi", "1");
+      embed.searchParams.set("origin", location.origin);
+      return embed.href;
+    }
+
+    async function startNoCookiePlayback(videoId, forceAutoPlay = false) {
+      const candidates = [
+        ...(state.shortsItems || []),
+        ...(state.homeItems || []),
+        ...(state.lastItems || []),
+        ...readHistory()
+      ];
+      const cached = candidates.find((entry) =>
+        String(entry?.videoId || entry?.id || "") === String(videoId)
+      );
+      const item = normalizeItem(cached || {
+        videoId, id: videoId, title: "YouTube動画", author: "YouTube",
+        type: "video",
+        videoThumbnails: [{ quality: "high", url: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` }]
+      });
+      const autoplay = forceAutoPlay || readSettings().autoPlay === true;
+      const player = $("#player");
+      const iframe = $("#noCookiePlayer");
+
+      state.currentVideo = item;
+      updateShortsLikeCount(item);
+      state.currentStreams = [];
+      state.currentPlaybackCandidates = [];
+      state.currentStream = null;
+      state.currentAudioStream = null;
+      state.downloadStream = null;
+      state.downloadAudioStream = null;
+      state.playbackRequested = autoplay;
+
+      saveHistory(item);
+      updateDownloadPicker();
+      $("#watchTitle").textContent = item.title || "YouTube動画";
+      $("#watchAvatar").innerHTML = avatarHtml(item);
+      $("#watchAvatar").dataset.channelId = item.authorId || "";
+      $("#watchAvatar").dataset.channelUrl = item.authorUrl || "";
+      $("#watchAvatar").dataset.channelAuthor = item.author || "YouTube";
+      $("#watchAvatar").classList.toggle("channel-link", Boolean(item.authorId || item.authorUrl));
+      $("#watchAvatar").setAttribute("role", item.authorId || item.authorUrl ? "button" : "img");
+      $("#watchAvatar").setAttribute("tabindex", item.authorId || item.authorUrl ? "0" : "-1");
+      $("#watchAvatar").setAttribute("aria-label", `${item.author || "YouTube"}のチャンネル`);
+      $("#watchAuthor").textContent = item.author || "YouTube";
+      $("#watchStats").textContent = item.viewCount ? `${formatCount(item.viewCount)} 回視聴${item.publishedText ? `・${item.publishedText}` : ""}` : "";
+      $("#watchDescription").textContent = item.description || "No Cookie再生を使用中です。動画情報の一部は表示されない場合があります。";
+      $("#descriptionToggle").classList.add("hidden");
+      applySubscribeButton();
+
+      player.pause();
+      player.removeAttribute("src");
+      player.load();
+      player.poster = thumbnail(item);
+      player.classList.add("hidden");
+      $("#audioPlayer").pause();
+      $("#audioPlayer").removeAttribute("src");
+      $("#audioPlayer").load();
+
+      $("#qualitySelect").innerHTML = "<option>No Cookie再生</option>";
+      $("#qualitySelect").disabled = true;
+      $("#shortsMuteButton").classList.add("hidden");
+      iframe.classList.remove("hidden");
+      $("#shortsVolumeSlider").disabled = true;
+      $("#shortsVolumeSlider").title = "No Cookie再生ではYouTubeプレイヤー内で音量調整";
+      iframe.title = `No Cookie再生: ${item.title || "YouTube動画"}`;
+      iframe.src = buildNoCookieEmbedUrl(videoId, autoplay);
+      setPlayerLoading(false);
+
+      if (!state.musicPlayback) loadComments(videoId);
+    }
+
     async function openVideo(videoId, playlistId = "", musicMode = false, playlistIndex = -1, forceAutoPlay = false) {
+      const requestedVideoUrl = String(videoId || "");
+      const shortsMatch = requestedVideoUrl.match(/(?:youtube\.com\/shorts\/|youtu\.be\/)([a-zA-Z0-9_-]{11})/i);
+      const watchMatch = requestedVideoUrl.match(/[?&]v=([a-zA-Z0-9_-]{11})/i);
+      if (shortsMatch) videoId = shortsMatch[1];
+      else if (watchMatch) videoId = watchMatch[1];
       state.abortControllers.comments?.abort();
       if (state.route === "home" && state.lastPath === DEFAULT_HOME_PATH) saveHomeSnapshot();
+      const shortsMode = Boolean(state.shortsPlayback && !musicMode);
+      const subscribeButton = $("#subscribeButton");
+      if (shortsMode) {
+        const meta = $(".watch-meta");
+        if (subscribeButton.parentElement !== meta) meta.appendChild(subscribeButton);
+      } else {
+        const actions = $(".watch-actions");
+        if (subscribeButton.parentElement !== actions) actions.prepend(subscribeButton);
+      }
       stopPlayback();
-      state.route = musicMode ? "music" : "watch";
+      state.shortsPlayback = shortsMode;
+      state.route = shortsMode ? "shorts-watch" : (musicMode ? "music" : "watch");
+      document.body.classList.toggle("shorts-active", shortsMode);
+      document.body.classList.remove("shorts-comments-open");
+      $("#shortsPlayerMenu")?.classList.add("hidden");
       document.body.classList.toggle("music-active", Boolean(musicMode));
       $("#musicFilterBar").classList.toggle("hidden", !musicMode);
       $("#chips").classList.toggle("hidden", Boolean(musicMode));
@@ -5712,9 +6377,19 @@
       $("#sideTitle").textContent = state.watchPlaylistId ? "再生リスト" : "次の動画";
       $("#nextList").className = state.watchPlaylistId ? "side-list playlist-side" : "side-list";
       $("#nextList").innerHTML = "";
-      if (!musicMode) history.pushState(null, "", `#watch=${encodeURIComponent(videoId)}`);
+      if (!musicMode) {
+        if (shortsMode) {
+          history.pushState(null, "", `#shorts?q=${encodeURIComponent(state.shortsQuery || "ショート")}&video=${encodeURIComponent(videoId)}`);
+        } else {
+          history.pushState(null, "", `#watch=${encodeURIComponent(videoId)}`);
+        }
+      }
       window.scrollTo({ top: 0, behavior: "instant" });
       try {
+        if (readSettings().noCookiePlayback === true && !musicMode) {
+          await startNoCookiePlayback(videoId, forceAutoPlay);
+          return;
+        }
         const raw = await api(`videos/${encodeURIComponent(videoId)}?local=true`);
         if (musicMode && raw && typeof raw === "object") {
           ["description", "descriptionHtml", "descriptionText", "shortDescription", "comments", "commentCount", "commentsCount", "recommendedVideos"].forEach((key) => delete raw[key]);
@@ -5723,20 +6398,22 @@
         if (provider) state.playbackRetry?.attemptedProviders.add(`${provider.kind}:${provider.instance}`);
         const normalized = normalizeItem(raw);
         const item = musicMode ? { videoId: normalized.videoId, title: normalized.title, author: normalized.author, videoThumbnails: normalized.videoThumbnails } : normalized;
-        const streams = getQualityStreams(raw);
-        const playbackCandidates = getQualityStreams(raw, true);
-        state.currentAudioStream = getAudioStream(raw);
-        state.downloadStream = getDownloadStream(streams);
+        const noCookiePlayback = readSettings().noCookiePlayback === true && !musicMode;
+        const streams = noCookiePlayback ? [] : getQualityStreams(raw);
+        const playbackCandidates = noCookiePlayback ? [] : getQualityStreams(raw, true);
+        state.currentAudioStream = noCookiePlayback ? null : getAudioStream(raw);
+        state.downloadStream = noCookiePlayback ? null : getDownloadStream(streams);
         state.downloadAudioStream = state.currentAudioStream;
         const progressive = streams.filter((candidate) => candidate._progressive);
         const stream = progressive.find((candidate) => qualityNumber(candidate) <= 720 && qualityNumber(candidate) > 0)
           || progressive[0]
           || streams.find((candidate) => qualityNumber(candidate) <= 720 && qualityNumber(candidate) > 0)
           || streams[0];
-        if (!stream?.url) throw new Error("再生URLがありません");
+        if (!noCookiePlayback && !stream?.url) throw new Error("再生URLがありません");
         state.currentStreams = streams;
         state.currentPlaybackCandidates = playbackCandidates;
         state.currentVideo = item;
+        updateShortsLikeCount(item, raw);
         updateDownloadPicker();
         saveHistory(item);
         if (musicMode) {
@@ -5761,7 +6438,15 @@
           $("#descriptionToggle").classList.toggle("hidden", fullDescription.length <= 240);
         }
         const player = $("#player");
+        const noCookiePlayer = $("#noCookiePlayer");
         player.poster = thumbnail(item);
+        if (noCookiePlayer) {
+          noCookiePlayer.src = "about:blank";
+          noCookiePlayer.classList.add("hidden");
+        }
+        player.classList.remove("hidden");
+        $("#shortsVolumeSlider").disabled = false;
+        $("#shortsVolumeSlider").value = String(player.volume);
         renderQualityOptions(state.currentStreams, stream);
         if (musicMode && state.currentAudioStream?.url) {
           const audio = $("#audioPlayer");
@@ -5780,7 +6465,24 @@
           // The API response arrives after the original click; autoplay may be blocked.
           // Keep the player ready and let the visible play button provide a fresh gesture.
           updateMusicPlayer();
+        } else if (noCookiePlayback) {
+          const autoplay = forceAutoPlay || readSettings().autoPlay === true;
+          player.pause();
+          player.removeAttribute("src");
+          player.load();
+          $("#audioPlayer").pause();
+          $("#audioPlayer").removeAttribute("src");
+          $("#audioPlayer").load();
+          player.classList.add("hidden");
+          noCookiePlayer.classList.remove("hidden");
+          noCookiePlayer.title = `No Cookie再生: ${item.title || "YouTube動画"}`;
+          noCookiePlayer.src = buildNoCookieEmbedUrl(videoId, autoplay);
+          $("#qualitySelect").innerHTML = "<option>No Cookie再生</option>";
+          $("#qualitySelect").disabled = true;
+          $("#shortsMuteButton").classList.add("hidden");
+          setPlayerLoading(false);
         } else {
+          $("#shortsMuteButton").classList.remove("hidden");
           setPlayerStream(stream, false, forceAutoPlay);
         }
         if (!musicMode) {
@@ -5990,6 +6692,22 @@
       const hash = location.hash;
       if (hash !== "#news") setNewsTickerVisible(false);
       if (hash === "#music") return loadMusic();
+      if (hash === "#shorts" || hash.startsWith("#shorts?")) {
+        const params = new URLSearchParams(hash.split("?")[1] || "");
+        const q = params.get("q") || "ショート";
+        const videoId = params.get("video");
+        if (!videoId) return loadShorts(q);
+        return loadShorts(q).then(() => {
+          const items = state.shortsItems || [];
+          let index = items.findIndex((item) => item.videoId === videoId);
+          if (index < 0) {
+            items.unshift({ videoId, id: videoId, title: "ショート", author: "YouTube", type: "video", videoThumbnails: [{ quality: "high", url: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` }] });
+            state.shortsItems = items;
+            index = 0;
+          }
+          playShortAt(index);
+        });
+      }
       if (hash === "#music-history") return loadMusicHistory();
       const watch = hash.match(/^#watch=(.+)$/);
       const searchMatch = hash.match(/^#search=(.+)$/);
@@ -6069,7 +6787,9 @@
     });
     $("#searchForm").addEventListener("submit", (event) => {
       event.preventDefault();
-      search($("#searchInput").value);
+      const query = $("#searchInput").value.trim();
+      if (state.route === "shorts" || state.route === "shorts-watch") loadShorts(query || "ショート");
+      else search(query);
     });
     $("#searchInput").addEventListener("focus", handleSearchInput);
     $("#searchInput").addEventListener("input", handleSearchInput);
@@ -6079,10 +6799,17 @@
     $("#chips").addEventListener("click", (event) => {
       const chip = event.target.closest(".chip");
       if (!chip) return;
+      if (chip.dataset.shorts === "true") {
+        const query = $("#searchInput").value.trim() || "ショート";
+        return loadShorts(query);
+      }
       $("#searchInput").value = chip.dataset.query;
       search(chip.dataset.query);
     });
-    $("#loadMoreButton").addEventListener("click", loadMoreHome);
+    $("#loadMoreButton").addEventListener("click", () => {
+      if (state.route === "shorts") loadMoreShorts();
+      else loadMoreHome();
+    });
     $("#loadAllButton").addEventListener("click", loadAllChannelVideos);
     if ("IntersectionObserver" in window) {
       const channelLoadMoreObserver = new IntersectionObserver((entries) => {
@@ -6106,13 +6833,141 @@
       state.channelSort = event.target.value === "popular" ? "popular" : "latest";
       renderHomeItems();
     });
-    $("#refreshButton").addEventListener("click", () => state.route === "watch" && state.currentVideo
+    $("#refreshButton").addEventListener("click", () => (state.route === "watch" || state.route === "shorts-watch") && state.currentVideo
       ? openVideo(state.currentVideo.videoId)
       : state.route === "playlists" ? loadPlaylists()
       : state.route === "channel" ? openChannel(state.channelId, state.channelUrl, state.channelAuthor)
       : state.route === "news" ? loadNews()
       : loadHome(state.lastPath, $("#pageHeading").textContent));
-    $("#backButton").addEventListener("click", () => { history.pushState(null, "", "#home"); loadHome(); });
+    $("#backButton").addEventListener("click", () => {
+      if (state.shortsPlayback) return loadShorts(state.shortsQuery || "ショート");
+      history.pushState(null, "", "#home");
+      loadHome();
+    });
+    $("#shortsBackButton").addEventListener("click", () => loadShorts(state.shortsQuery || "ショート"));
+    $("#shortsPrevButton").addEventListener("click", () => moveShort(-1));
+    $("#shortsNextButton").addEventListener("click", () => moveShort(1));
+    $("#shortsMuteButton").addEventListener("click", () => {
+      if (readSettings().noCookiePlayback === true) {
+        showToast("音量はYouTubeプレイヤー内で調整してください");
+        return;
+      }
+      const player = $("#player");
+      player.muted = !player.muted;
+      $("#shortsMuteButton").textContent = player.muted ? "消音" : "音";
+      showToast(player.muted ? "ミュートしました" : "音声をONにしました");
+    });
+    $("#shortsShareButton").addEventListener("click", async () => {
+      const id = state.currentVideo?.videoId;
+      if (!id) return;
+      const shareUrl = `https://www.youtube.com/shorts/${id}`;
+      try {
+        if (navigator.share) await navigator.share({ title: state.currentVideo.title || "Shorts", url: shareUrl });
+        else {
+          await navigator.clipboard.writeText(shareUrl);
+          showToast("ShortsのURLをコピーしました");
+        }
+      } catch (error) {
+        if (error.name !== "AbortError") showToast("共有できませんでした");
+      }
+    });
+    $("#shortsCommentsButton").addEventListener("click", () => {
+      const opened = document.body.classList.toggle("shorts-comments-open");
+      $("#shortsCommentsButton").setAttribute("aria-expanded", String(opened));
+      if (opened) $("#commentsSection").scrollTop = 0;
+    });
+    $("#shortsDownloadButton").addEventListener("click", () => $("#downloadButton").click());
+    $("#shortsPlayerMenuButton").addEventListener("click", (event) => {
+      event.stopPropagation();
+      $("#shortsPlayerMenu").classList.toggle("hidden");
+    });
+    $("#shortsDescriptionMenu").addEventListener("click", () => {
+      $("#shortsPlayerMenu").classList.add("hidden");
+      document.body.classList.remove("shorts-comments-open");
+      const isOpen = document.body.classList.toggle("shorts-description-open");
+      if (isOpen) $("#watchDescription").classList.add("expanded");
+      showToast(isOpen ? "概要を表示しました" : "概要を閉じました");
+    });
+    $("#shortsDescriptionClose").addEventListener("click", () => {
+      document.body.classList.remove("shorts-description-open");
+      showToast("概要を閉じました");
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && document.body.classList.contains("shorts-description-open")) {
+        document.body.classList.remove("shorts-description-open");
+      }
+    });
+    $("#shortsPlaylistMenu").addEventListener("click", () => {
+      $("#shortsPlayerMenu").classList.add("hidden");
+      $("#addToPlaylistButton").click();
+    });
+    document.addEventListener("click", (event) => {
+      if (!event.target.closest("#shortsPlayerMenu, #shortsPlayerMenuButton")) $("#shortsPlayerMenu")?.classList.add("hidden");
+      if (document.body.classList.contains("shorts-active") && document.body.classList.contains("shorts-comments-open")
+          && window.matchMedia("(max-width: 680px)").matches
+          && !event.target.closest("#commentsSection, #shortsCommentsButton")) {
+        document.body.classList.remove("shorts-comments-open");
+      }
+    });
+    $("#shortsVolumeSlider").addEventListener("input", (event) => {
+      if (readSettings().noCookiePlayback === true) {
+        showToast("No Cookie再生では音量をプレイヤー内で調整してください");
+        return;
+      }
+      $("#player").volume = Number(event.target.value);
+      $("#player").muted = Number(event.target.value) === 0;
+    });
+    $("#shortsLikeButton").addEventListener("click", () => showToast("表示はいいね数です。評価の送信には対応していません。"));
+
+    $("#player").addEventListener("ended", () => {
+      if (state.shortsPlayback) moveShort(1);
+    });
+    window.addEventListener("keydown", (event) => {
+      if (!document.body.classList.contains("shorts-active")) return;
+      if (["INPUT", "TEXTAREA"].includes(document.activeElement?.tagName)) return;
+      if (event.key === "ArrowDown" || event.key === "PageDown") {
+        event.preventDefault();
+        moveShort(1);
+      } else if (event.key === "ArrowUp" || event.key === "PageUp") {
+        event.preventDefault();
+        moveShort(-1);
+      } else if (event.key === "Escape") {
+        event.preventDefault();
+        loadShorts(state.shortsQuery || "ショート");
+      }
+    });
+    let shortsGestureLocked = false;
+    function triggerShortsGesture(delta) {
+      if (shortsGestureLocked || !document.body.classList.contains("shorts-active")) return;
+      shortsGestureLocked = true;
+      moveShort(delta);
+      setTimeout(() => { shortsGestureLocked = false; }, 650);
+    }
+    document.addEventListener("wheel", (event) => {
+      if (!document.body.classList.contains("shorts-active")) return;
+      // コメント欄・概要欄のスクロールをShorts切替ジェスチャーとして扱わない
+      if (event.target.closest?.("#commentsSection, #watchDescription, #shortsPlayerMenu")) return;
+      if (document.body.classList.contains("shorts-comments-open") && event.target.closest?.(".comments-section")) return;
+      if (Math.abs(event.deltaY) > 24) triggerShortsGesture(event.deltaY > 0 ? 1 : -1);
+    }, { passive: true });
+    let shortsTouchStartY = null;
+    $("#watchPage").addEventListener("touchstart", (event) => {
+      if (!document.body.classList.contains("shorts-active")) return;
+      // ドロワー内の縦スクロールは動画送りに使わない
+      if (event.target.closest?.("#commentsSection, #watchDescription, #shortsPlayerMenu")) {
+        shortsTouchStartY = null;
+        return;
+      }
+      shortsTouchStartY = event.touches[0]?.clientY ?? null;
+    }, { passive: true });
+    $("#watchPage").addEventListener("touchend", (event) => {
+      if (shortsTouchStartY == null || !document.body.classList.contains("shorts-active")) return;
+      const endY = event.changedTouches[0]?.clientY ?? shortsTouchStartY;
+      const distance = shortsTouchStartY - endY;
+      shortsTouchStartY = null;
+      if (Math.abs(distance) > 55) triggerShortsGesture(distance > 0 ? 1 : -1);
+    }, { passive: true });
+
     $("#clearHistoryButton").addEventListener("click", clearHistory);
     $("#subscribeButton").addEventListener("click", toggleSubscription);
     $("#channelSubscribeButton").addEventListener("click", toggleChannelSubscription);
@@ -6216,6 +7071,10 @@
     });
     $("#player").addEventListener("ended", () => {
       const audio = $("#audioPlayer");
+      if (state.shortsPlayback) {
+        moveShort(1);
+        return;
+      }
       if (state.musicPlayback && audio.src) return;
       state.playbackRequested = false;
       audio.pause();
@@ -6314,18 +7173,14 @@
       $("#pipedOnlyToggle").checked = false;
       $("#useMikanTubeApiToggle").checked = false;
       $("#invOnlyToggle").checked = false;
+      $("#useYouTubeJsToggle").checked = false;
+      $("#noCookiePlaybackToggle").checked = false;
       $("#newsAgeValue").value = "30";
       $("#newsAgeUnit").value = "day";
       $("#tabPreset").value = "classroom";
       $("#customTabTitle").value = TAB_PRESETS.classroom.title;
       $("#customFaviconUrl").value = TAB_PRESETS.classroom.favicon;
       saveSettings();
-    });
-    document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape") {
-        closeSettingsDrawer();
-        closePlaylistPicker();
-      }
     });
     window.addEventListener("pagehide", stopPlayback);
     document.querySelectorAll(".nav-item[data-route]").forEach((item) => item.addEventListener("click", () => {
@@ -6334,6 +7189,7 @@
       const route = item.dataset.route;
       if (route !== "news") setNewsTickerVisible(false);
       if (route === "music") return loadMusic();
+      if (route === "shorts") return loadShorts();
       if (route === "history") return loadHistory();
       if (route === "music-history") return loadMusicHistory();
       if (route === "playlists") return loadPlaylists();
@@ -6351,4 +7207,4 @@
     routeFromHash();
   </script>
 </body>
-</html
+              </html>
