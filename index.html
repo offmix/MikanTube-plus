@@ -1903,7 +1903,7 @@
                 </div>
               </div>
               <div class="player-toolbar">
-                <label class="autoplay-toggle" for="autoPlayToggle"><input id="autoPlayToggle" type="checkbox">自動再生をON</label>
+                <label class="autoplay-toggle" for="autoPlayToggle"><input id="autoPlayToggle" type="checkbox">自動再生</label>
                 <label for="qualitySelect">画質・音声</label>
                 <select class="quality-select" id="qualitySelect" aria-label="画質を選択" disabled>
                   <option>読み込み中…</option>
@@ -2026,7 +2026,6 @@
         <div class="settings-row">
           <div>
             <span class="settings-label">ダークモード</span>
-            <p class="settings-help">画面の配色を暗くします。</p>
           </div>
           <label class="switch" aria-label="ダークモード">
             <input id="darkModeToggle" type="checkbox">
@@ -2037,10 +2036,9 @@
       <div class="settings-group">
         <div class="settings-row">
           <div>
-            <span class="settings-label">自動再生をON</span>
-            <p class="settings-help">動画を開いたときに自動で再生を開始します。ブラウザの制限により再生が始まらない場合は、再生ボタンを押してください。</p>
+            <span class="settings-label">自動再生</span>
           </div>
-          <label class="switch" aria-label="自動再生をON">
+          <label class="switch" aria-label="自動再生">
             <input id="autoPlaySettingsToggle" type="checkbox">
             <span class="switch-track"></span>
           </label>
@@ -2050,7 +2048,6 @@
         <div class="settings-row">
           <div>
             <span class="settings-label">おすすめ＋</span>
-            <p class="settings-help">視聴・検索履歴に近い未視聴動画を、複数のチャンネルからおすすめします。</p>
           </div>
           <label class="switch" aria-label="おすすめ＋">
             <input id="personalizedRecommendationsToggle" type="checkbox">
@@ -2061,10 +2058,9 @@
       <div class="settings-group">
         <div class="settings-row">
           <div>
-            <span class="settings-label">Pipedだけを使用</span>
-            <p class="settings-help">動画の検索・情報取得をPiped APIだけで行います。Pipedが使えない場合、Invidiousへは切り替えません。</p>
+            <span class="settings-label">Pipedのみ</span>
           </div>
-          <label class="switch" aria-label="Pipedだけを使用">
+          <label class="switch" aria-label="Pipedのみ">
             <input id="pipedOnlyToggle" type="checkbox">
             <span class="switch-track"></span>
           </label>
@@ -2073,10 +2069,9 @@
       <div class="settings-group">
         <div class="settings-row">
           <div>
-            <span class="settings-label">みかんTube+APIを使用する</span>
-            <p class="settings-help">検索、動画・チャンネル情報などの取得に使用します。再生ストリームは従来のAPIから取得します。</p>
+            <span class="settings-label">みかんTube+ API</span>
           </div>
-          <label class="switch" aria-label="みかんTube+APIを使用する">
+          <label class="switch" aria-label="みかんTube+ API">
             <input id="useMikanTubeApiToggle" type="checkbox">
             <span class="switch-track"></span>
           </label>
@@ -2085,10 +2080,9 @@
       <div class="settings-group">
         <div class="settings-row">
           <div>
-            <span class="settings-label">YouTube.jsだけで検索</span>
-            <p class="settings-help">検索結果はYouTube.js APIから取得します。動画を開いた後の詳細・再生・コメントは従来のInv / Piped APIを使用します。</p>
+            <span class="settings-label">YouTube.js検索</span>
           </div>
-          <label class="switch" aria-label="YouTube.jsだけで検索">
+          <label class="switch" aria-label="YouTube.js検索">
             <input id="useYouTubeJsToggle" type="checkbox">
             <span class="switch-track"></span>
           </label>
@@ -2097,10 +2091,9 @@
       <div class="settings-group">
         <div class="settings-row">
           <div>
-            <span class="settings-label">Invだけ使用</span>
-            <p class="settings-help">Invidious APIだけを使用します。Piped APIは試行しません。</p>
+            <span class="settings-label">Invのみ</span>
           </div>
-          <label class="switch" aria-label="Invだけ使用">
+          <label class="switch" aria-label="Invのみ">
             <input id="invOnlyToggle" type="checkbox">
             <span class="switch-track"></span>
           </label>
@@ -2109,18 +2102,16 @@
       <div class="settings-group">
         <div class="settings-row">
           <div>
-            <span class="settings-label">No Cookie再生を使用する</span>
-            <p class="settings-help">YouTubeのプライバシー強化モード（youtube-nocookie.com）の埋め込みプレイヤーで再生します。通常の動画ストリーム取得を使わず、Shortsにも対応します。</p>
+            <span class="settings-label">No Cookie再生</span>
           </div>
-          <label class="switch" aria-label="No Cookie再生を使用する">
+          <label class="switch" aria-label="No Cookie再生">
             <input id="noCookiePlaybackToggle" type="checkbox">
             <span class="switch-track"></span>
           </label>
         </div>
       </div>
       <div class="settings-group">
-        <label class="settings-label" for="newsAgeValue">ニュースの対象期間</label>
-        <p class="settings-help">指定した期間内に公開されたニュースを表示します。最短1時間、最長5年です。</p>
+        <label class="settings-label" for="newsAgeValue">ニュース期間</label>
         <div class="news-age-controls">
           <input class="settings-input" id="newsAgeValue" type="number" min="1" max="5" step="1" value="30" inputmode="numeric" aria-label="ニュースの期間の数値">
           <select class="settings-select" id="newsAgeUnit" aria-label="ニュースの期間の単位">
@@ -2132,8 +2123,7 @@
         </div>
       </div>
       <div class="settings-group">
-        <label class="settings-label" for="tabPreset">ブラウザタブのプリセット</label>
-        <p class="settings-help">タイトルとファビコンをタブに反映します。</p>
+        <label class="settings-label" for="tabPreset">タブ表示</label>
         <select class="settings-select" id="tabPreset">
           <option value="classroom">ホーム - Classroom</option>
           <option value="search">社会 中部地方 - Google検索</option>
@@ -2141,10 +2131,9 @@
         </select>
       </div>
       <div class="settings-group">
-        <label class="settings-label" for="customTabTitle">カスタムタブ名</label>
+        <label class="settings-label" for="customTabTitle">タブ名・アイコン</label>
         <input class="settings-input" id="customTabTitle" type="text" maxlength="120" placeholder="タブに表示する名前">
         <input class="settings-input" id="customFaviconUrl" type="url" placeholder="ファビコン画像のURL">
-        <p class="settings-help">カスタムを選択すると、この2つの値が使われます。</p>
       </div>
           <p>ℬ𝓎 ℴ𝒻𝒻_𝓂𝒾𝓍</p>
       <a href="https://scratch.mit.edu/users/off_mixsub/">Scratch</a>
@@ -3587,7 +3576,7 @@
           return pipedResult.data;
         }
         setStatus("error", "Piped APIに接続できません");
-        throw new Error(errors.join(" / ") || "Pipedだけを使用する設定ですが、利用可能なPipedインスタンスがありません");
+        throw new Error(errors.join(" / ") || "Pipedのみする設定ですが、利用可能なPipedインスタンスがありません");
       }
       if (!options.invidiousOnly && apiMode !== "invidious" && options.preferPiped) {
         const pipedResult = await tryPiped();
@@ -4632,18 +4621,18 @@
           } catch (_) {}
         }
         if (path.startsWith("trending")) {
-          state.lastItems = await addNamedRecommendations(state.lastItems);
-          if (settings.personalizedRecommendations && (readHistory().length || readSearchHistory().length)) {
-            const recommendations = await personalizedItems(state.lastItems);
+          const trendSeed = diversifyRecommendations(state.lastItems);
+          state.lastItems = await buildRealisticHomeRecommendations(trendSeed, Boolean(settings.personalizedRecommendations));
+          state.recommendationViewActive = Boolean(settings.personalizedRecommendations
+            && (readHistory().length || readSearchHistory().length));
+          if (state.recommendationViewActive) {
+            $("#pageHeading").textContent = "おすすめ＋";
             const queries = personalizedItems.lastQueries || [];
-            if (recommendations.length) {
-              state.recommendationViewActive = true;
-              state.lastItems = recommendations;
-              $("#pageHeading").textContent = "おすすめ＋";
-              $("#pageSubheading").textContent = queries.length
-                ? `履歴に関連する未視聴動画を${queries.length}種類の検索語から表示`
-                : "視聴・検索履歴をもとにした未視聴動画";
-            }
+            $("#pageSubheading").textContent = queries.length
+              ? ``
+              : "";
+          } else {
+            $("#pageSubheading").textContent = "";
           }
         }
         state.homeItems = state.lastItems.slice(0, 20);
@@ -4877,15 +4866,95 @@
     async function personalizedItems(seedItems = []) {
       const queries = recommendationQueries();
       const historyVideoIds = new Set(readHistory().map((item) => item.videoId));
-      const historyItems = [];
-      for (const query of queries) {
+      // 検索を並列化して待ち時間を短縮。検索語ごとの結果をまとめて重複を除く。
+      const queryResults = await Promise.all(queries.map(async (query) => {
         try {
-          historyItems.push(...(await searchRecommendationVideos(query)).filter((item) => !historyVideoIds.has(item.videoId)));
-        } catch (_) {}
-      }
+          return (await searchRecommendationVideos(query)).filter((item) => !historyVideoIds.has(item.videoId));
+        } catch (_) { return []; }
+      }));
       personalizedItems.lastQueries = queries;
-      const unseen = uniqueVideoItems([...historyItems, ...seedItems], historyVideoIds);
-      return diversifyRecommendations(unseen);
+      const related = diversifyRecommendations(uniqueVideoItems(queryResults.flat(), historyVideoIds));
+      const popular = diversifyRecommendations(uniqueVideoItems(seedItems, historyVideoIds));
+      const mixed = [];
+      let relatedIndex = 0;
+      let popularIndex = 0;
+      while (relatedIndex < related.length || popularIndex < popular.length) {
+        if (related[relatedIndex]) mixed.push(related[relatedIndex++]);
+        if (related[relatedIndex]) mixed.push(related[relatedIndex++]);
+        if (popular[popularIndex]) mixed.push(popular[popularIndex++]);
+      }
+      return diversifyRecommendations(uniqueVideoItems(mixed, historyVideoIds));
+    }
+
+    function japaneseRelevance(items) {
+      return [...items].sort((a, b) => {
+        const score = (item) => {
+          const normalized = normalizeItem(item);
+          const text = `${normalized.title || ""} ${normalized.author || ""}`;
+          return (/日本語|日本|国内/.test(text) ? 2 : 0)
+            + (/[ぁ-んァ-ヶ一-龯]/.test(text) ? 2 : 0)
+            + (/[A-Za-z]/.test(normalized.title || "") && !/[ぁ-んァ-ヶ一-龯]/.test(normalized.title || "") ? -1 : 0);
+        };
+        return score(b) - score(a);
+      });
+    }
+
+    async function buildRealisticHomeRecommendations(trendingItems = [], enablePersonalized = false) {
+      const historyIds = new Set(readHistory().map((item) => item.videoId));
+      const safeSearch = async (query) => {
+        try {
+          const results = await searchRecommendationVideos(query);
+          return japaneseRelevance(uniqueVideoItems(results, historyIds));
+        } catch (_) { return []; }
+      };
+      // 日本向けの定番枠は少量だけ。特定チャンネルだけに依存しないよう複数検索する。
+      const [creatorA, creatorB, game, music, variety, personalized] = await Promise.all([
+        safeSearch("ヒカキン HIKAKIN"),
+        safeSearch("はじめしゃちょー Fischer's 東海オンエア"),
+        safeSearch("日本 ゲーム実況 人気"),
+        safeSearch("日本 音楽 人気 MV"),
+        safeSearch("日本 エンタメ おもしろ"),
+        (enablePersonalized && (readHistory().length || readSearchHistory().length))
+          ? personalizedItems(trendingItems).catch(() => [])
+          : Promise.resolve([])
+      ]);
+      const buckets = {
+        trend: diversifyRecommendations(uniqueVideoItems(trendingItems, historyIds)),
+        creator: diversifyRecommendations(uniqueVideoItems([...creatorA, ...creatorB], historyIds)),
+        category: diversifyRecommendations(uniqueVideoItems([...game, ...music, ...variety], historyIds)),
+        personal: diversifyRecommendations(uniqueVideoItems(personalized, historyIds))
+      };
+      // 20枠中、トレンド10・定番クリエイター4・ジャンル3・履歴関連3の比率。
+      const slots = ["trend","creator","trend","category","trend","personal","trend","creator","trend","category","trend","personal","trend","creator","trend","category","trend","personal","trend","creator"];
+      const positions = { trend: 0, creator: 0, category: 0, personal: 0 };
+      const output = [];
+      const used = new Set();
+      const take = (bucketName) => {
+        const bucket = buckets[bucketName];
+        while (positions[bucketName] < bucket.length) {
+          const item = bucket[positions[bucketName]++];
+          const id = normalizeItem(item).videoId;
+          if (id && !used.has(id)) { used.add(id); return item; }
+        }
+        return null;
+      };
+      for (const wanted of slots) {
+        let item = take(wanted);
+        if (!item) {
+          for (const fallback of ["trend", "category", "creator", "personal"]) {
+            item = take(fallback);
+            if (item) break;
+          }
+        }
+        if (item) output.push(item);
+      }
+      // 取得件数が少ない場合も、元のトレンドを優先して自然に補完。
+      for (const item of diversifyRecommendations(uniqueVideoItems(trendingItems))) {
+        const id = normalizeItem(item).videoId;
+        if (id && !used.has(id)) { used.add(id); output.push(item); }
+        if (output.length >= 60) break;
+      }
+      return output;
     }
 
     function diversifyRecommendations(items) {
@@ -4918,40 +4987,8 @@
     }
 
     async function addNamedRecommendations(seedItems = []) {
-      const groups = [
-        { query: "ヒカキン", count: 4, matcher: /ヒカキン|hikakin/i },
-        { query: "佐倉あましん", count: 3, matcher: /佐倉あましん|sakura.?amashin/i },
-        { query: "ネオチューバー", count: 4, matcher: /ネオチューバー|neo.?tuber/i }
-      ];
-      const fetched = [];
-      for (const group of groups) {
-        try {
-          fetched.push(uniqueVideoItems(await searchRecommendationVideos(group.query)).slice(0, group.count));
-        } catch (_) {
-          fetched.push([]);
-        }
-      }
-      const regular = uniqueVideoItems(seedItems).filter(
-        (item) => !groups.some((group) => isNamedRecommendation(item, group.matcher))
-      );
-      const extras = [];
-      let groupIndex = 0;
-      while (fetched.some((items) => items.length)) {
-        const items = fetched[groupIndex % fetched.length];
-        if (items.length) extras.push(items.shift());
-        groupIndex += 1;
-      }
-      const mixed = [];
-      let extraIndex = 0;
-      regular.forEach((item, index) => {
-        mixed.push(item);
-        const target = Math.round((extraIndex + 1) * regular.length / (extras.length + 1));
-        while (extraIndex < extras.length && index + 1 >= target) {
-          mixed.push(extras[extraIndex++]);
-        }
-      });
-      mixed.push(...extras.slice(extraIndex));
-      return uniqueVideoItems(mixed);
+      // 旧バージョン互換。固定チャンネルの強制挿入は行わない。
+      return diversifyRecommendations(seedItems);
     }
 
     async function search(query) {
@@ -7144,7 +7181,7 @@
       settings.autoPlay = $("#autoPlayToggle").checked;
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
       $("#autoPlaySettingsToggle").checked = settings.autoPlay;
-      showToast(settings.autoPlay ? "自動再生をONにしました" : "自動再生をOFFにしました");
+      showToast(settings.autoPlay ? "自動再生にしました" : "自動再生をOFFにしました");
     });
     $("#autoPlaySettingsToggle").addEventListener("change", () => {
       $("#autoPlayToggle").checked = $("#autoPlaySettingsToggle").checked;
