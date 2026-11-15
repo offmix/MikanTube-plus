@@ -2187,13 +2187,7 @@
   </section>
   <script>
     "use strict";
-
-    /*
-     * インスタンスは画面に公開せず、リクエストごとに自動で健全性を判定します。
-     * f5.si と ducks.party を先頭に含め、応答したインスタンスを次回優先します。
-     */
-    // Existing instances are kept first; this list also includes every unique
-    // Invidious API instance from the supplied K-Tube v18 snapshot.
+   
     const PRIMARY_INSTANCE = "https://invidious.schenkel.eti.br";
     const INSTANCES = [
       PRIMARY_INSTANCE,
@@ -2302,7 +2296,7 @@
       },
       search: {
         title: "社会 中部地方 - Google検索",
-        favicon: "https://asset.watch.impress.co.jp/img/ktw/docs/2013/737/cont2_l.jpg"
+        favicon: "https://developers.google.com/static/identity/images/branding_guideline_sample_lt_rd_sl.svg?hl=ja"
       }
     };
     const state = {
