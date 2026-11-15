@@ -41,6 +41,9 @@ Github Pages以外の公式URL
  - [html.cafe版](https://html.cafe/xa9e50f42)
  - [GAS版](https://script.google.com/macros/s/AKfycbx90qdu-36kfACwy85YHqgJMq0HVhgpZDXxtRbbLoQdRbxyAGNVoluvwiBEB06DqUsT/exec
 )
+ - [gob.mx版](http://mikan-plus.hospitaldelninodif.gob.mx/
+)
+ - [moon.com版](http://mikan-plus.mooo.com/)
   ### Rapid APIについて
    - Invidiousを使用したほうが取得が速いです。GAS経由で取得しているためです。
    - 使用したい場合はindex.htmlの該当するコードを抜き取ってください。
