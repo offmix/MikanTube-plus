@@ -521,6 +521,23 @@
       grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 30px 16px;
     }
+    /* ホームのショート棚 */
+    .home-shorts-shelf { margin: 8px 0 28px; padding: 0 0 20px; border-bottom: 1px solid var(--line); }
+    .home-shorts-heading { display:flex; align-items:center; gap:10px; margin:0 0 14px; }
+    .home-shorts-heading h2 { margin:0; font-size:20px; font-weight:750; }
+    .home-shorts-mark { display:inline-flex; align-items:center; gap:6px; font-weight:800; }
+    .home-shorts-mark svg { width:22px; height:22px; }
+    .home-shorts-more { margin-left:auto; padding:7px 12px; border:1px solid var(--line); border-radius:18px; color:var(--text); background:transparent; cursor:pointer; }
+    .home-shorts-grid { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:14px; }
+    .home-shorts-card { min-width:0; cursor:pointer; }
+    .home-shorts-thumb { position:relative; overflow:hidden; aspect-ratio:9/16; border-radius:12px; background:#111; }
+    .home-shorts-thumb img { width:100%; height:100%; display:block; object-fit:cover; }
+    .home-shorts-thumb:after { content:""; position:absolute; inset:45% 0 0; background:linear-gradient(transparent,#0009); }
+    .home-shorts-card h3 { margin:8px 0 4px; font-size:13px; line-height:1.4; font-weight:650; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+    .home-shorts-card .home-shorts-meta { color:var(--muted); font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    @media(max-width:760px) { .home-shorts-grid { grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; } }
+    @media(max-width:520px) { .home-shorts-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .home-shorts-card:nth-child(n+5) { display:none; } }
+
     /* YouTube Shorts-like browse grid */
     .video-grid.shorts-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 34px 16px; }
     .shorts-grid .video-card { min-width: 0; position: relative; }
@@ -1875,6 +1892,13 @@
           </div>
           <button class="text-button hidden history-clear-button" id="clearHistoryButton" type="button">履歴をすべて削除</button>
         </div>
+        <section class="home-shorts-shelf hidden" id="homeShortsShelf" aria-label="ショート">
+          <div class="home-shorts-heading">
+            <span class="home-shorts-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17.7 3.2 7.2 9.3a3.1 3.1 0 0 0 0 5.4l9.1 5.3a3.1 3.1 0 0 0 4.7-2.7V6a3.1 3.1 0 0 0-3.3-2.8ZM10 11.9l6.3-3.7v7.4L10 11.9Z"/></svg>ショート</span>
+            <button class="home-shorts-more" id="homeShortsMore" type="button">もっと見る</button>
+          </div>
+          <div class="home-shorts-grid" id="homeShortsGrid"></div>
+        </section>
         <div class="video-grid" id="videoGrid"></div>
         <div class="load-more-wrap" id="loadMoreWrap">
           <button class="load-more-button" id="loadMoreButton" type="button">さらに読み込む</button>
@@ -4155,6 +4179,7 @@
     }
 
     function renderHomeItems() {
+      if (state.route === "channel") $("#homeShortsShelf")?.classList.add("hidden");
       $("#videoGrid").className = state.route === "shorts" ? "video-grid shorts-grid" : "video-grid";
       const items = state.route === "channel" ? channelItemsForView() : state.homeItems;
       $("#videoGrid").innerHTML = items.length
@@ -4443,6 +4468,7 @@
 
     async function loadShorts(query = "ショート") {
       document.body.classList.remove("music-active", "shorts-active");
+      $("#homeShortsShelf")?.classList.add("hidden");
       state.shortsPlayback = false;
       stopPlayback();
       state.route = "shorts";
@@ -4557,6 +4583,47 @@
       playShortAt(next);
     }
 
+    async function loadHomeShortsShelf() {
+      const shelf = $("#homeShortsShelf");
+      const grid = $("#homeShortsGrid");
+      if (!shelf || !grid) return;
+      const moreButton = $("#homeShortsMore");
+      if (moreButton && !moreButton.dataset.bound) {
+        moreButton.dataset.bound = "1";
+        moreButton.addEventListener("click", () => loadShorts("ショート"));
+      }
+      shelf.classList.add("hidden");
+      grid.innerHTML = "";
+      try {
+        const result = await fetchYouTubeJsShorts("ショート", new AbortController().signal);
+        const items = uniqueVideoItems(result.videos || []).slice(0, 5);
+        if (!items.length || state.route !== "home") return;
+        state.homeShortsItems = items;
+        grid.innerHTML = items.map((raw, index) => {
+          const item = normalizeItem(raw);
+          return `<article class="home-shorts-card" data-home-shorts-index="${index}" tabindex="0" role="button" aria-label="ショート ${escapeHtml(item.title)}を再生">
+            <div class="home-shorts-thumb"><img src="${escapeHtml(thumbnail(item))}" loading="lazy" alt="" onerror="handleThumbnailError(this)"></div>
+            <h3>${escapeHtml(item.title)}</h3><div class="home-shorts-meta">${escapeHtml(item.author || "YouTube")}</div>
+          </article>`;
+        }).join("");
+        const open = (card) => {
+          const index = Number(card.dataset.homeShortsIndex);
+          state.shortsItems = state.homeShortsItems || items;
+          state.shortsPlaybackIndex = index;
+          playShortAt(index);
+        };
+        grid.querySelectorAll("[data-home-shorts-index]").forEach(card => {
+          card.addEventListener("click", () => open(card));
+          card.addEventListener("keydown", event => {
+            if (event.key === "Enter" || event.key === " ") { event.preventDefault(); open(card); }
+          });
+        });
+        shelf.classList.remove("hidden");
+      } catch (_) {
+        shelf.classList.add("hidden");
+      }
+    }
+
     async function loadHome(path = "trending?region=JP", heading = "おすすめの動画", hash = null, newsMode = false) {
       document.body.classList.remove("music-active");
       $("#musicFilterBar").classList.add("hidden");
@@ -4579,9 +4646,13 @@
       $("#messagePage").classList.add("hidden");
       if (canReuseSnapshot) {
         restoreHomeSnapshot(snapshot, hash || "#home");
+        const shelf = $("#homeShortsShelf");
+        if (shelf) shelf.classList.remove("hidden");
+        loadHomeShortsShelf();
         return;
       }
       state.recommendationViewActive = false;
+      $("#homeShortsShelf")?.classList.add("hidden");
       state.lastPath = path;
       state.homePage = 1;
       state.homeItems = [];
@@ -4640,6 +4711,7 @@
         renderHomeItems();
         history.replaceState(null, "", hash || (path === "trending?region=JP" ? "#home" : `#search=${encodeURIComponent(heading)}`));
         saveHomeSnapshot();
+        if (isDefaultHome) loadHomeShortsShelf();
       } catch (error) {
         if (error.name === "AbortError") return;
         showEmpty("動画を取得できません", "接続先を自動で切り替えましたが、現在応答するインスタンスがありません。");
