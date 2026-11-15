@@ -46,9 +46,9 @@ Github Pages以外の公式URL
  - [gob.mx版](http://mikan-plus.hospitaldelninodif.gob.mx/
 )
  - [moon.com版](http://mikan-plus.mooo.com/)
-  ### Rapid APIについて
-   - Invidiousを使用したほうが取得が速いです。GAS経由で取得しているためです。
-   - 使用したい場合はindex.htmlの該当するコードを抜き取ってください。
+ - [devs.surf版](https://mikan-plus.devs.surf/)
+  ### ショート動画について
+  ショート動画機能は万全でない可能性があります。
    ##### 【RECJ公認】登録番号:A0005
  ---
 
