@@ -6,9 +6,6 @@
   <meta name="theme-color" content="#ffffff">
   <link id="tabIcon" rel="icon" type="image/jpeg" href="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTPMiIU5F8QnFLsyFCsrCeJNUtk53s79A-6xHHBAcTF9g&amp;s=10">
   <title id="tabTitle">ホーム - Classroom</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,400,0,0" rel="stylesheet">
   <style>
     :root {
       --bg: #fff;
@@ -61,7 +58,6 @@
       border: 0;
     }
 
-    .material-symbols-outlined { font-family:"Material Symbols Outlined"; font-weight:normal; font-style:normal; font-size:22px; line-height:1; letter-spacing:normal; text-transform:none; display:inline-flex; white-space:nowrap; word-wrap:normal; direction:ltr; -webkit-font-feature-settings:"liga"; -webkit-font-smoothing:antialiased; font-feature-settings:"liga"; }
     .icon {
       width: 22px;
       height: 22px;
@@ -531,8 +527,9 @@
     .home-shorts-heading h2 { margin:0; font-size:20px; font-weight:750; }
     .home-shorts-mark { display:inline-flex; align-items:center; gap:6px; font-weight:800; }
     .home-shorts-mark svg { width:22px; height:22px; }
-    .home-shelf-symbol { font-family:"Material Symbols Outlined"; font-weight:normal; font-style:normal; font-size:25px; line-height:1; display:inline-flex; align-items:center; justify-content:center; font-feature-settings:"liga"; -webkit-font-feature-settings:"liga"; }
-    .nav-item .home-shelf-symbol { width:22px; height:22px; font-size:22px; flex:0 0 auto; }
+    .home-shelf-symbol { width:25px; height:25px; display:inline-flex; align-items:center; justify-content:center; flex:0 0 auto; }
+    .home-shelf-symbol .icon { width:25px; height:25px; }
+    .nav-item .home-shelf-symbol, .nav-item .home-shelf-symbol .icon { width:22px; height:22px; }
     .home-live-shelf { margin-top:24px; }
     .home-live-card .home-shorts-thumb { aspect-ratio:16/9; }
     .home-live-card .home-shorts-thumb:after { inset:45% 0 0; }
@@ -1820,7 +1817,7 @@
         <div class="nav-section">
           <button class="nav-item active" data-route="home" type="button"><svg class="icon"><use href="#i-home"></use></svg><span class="nav-label">ホーム</span></button>
           <button class="nav-item" data-route="shorts" type="button"><svg class="icon"><use href="#i-play"></use></svg><span class="nav-label">ショート</span></button>
-          <button class="nav-item" data-route="live" type="button"><span class="home-shelf-symbol" aria-hidden="true">live_tv</span><span class="nav-label">ライブ</span></button>
+          <button class="nav-item" data-route="live" type="button"><span class="home-shelf-symbol" aria-hidden="true"><svg class="icon"><use href="#i-monitor"></use></svg></span><span class="nav-label">ライブ</span></button>
           <button class="nav-item" data-route="news" type="button"><svg class="icon"><use href="#i-news"></use></svg><span class="nav-label">ニュース</span></button>
           <button class="nav-item" data-route="music" type="button"><svg class="icon"><use href="#i-music"></use></svg><span class="nav-label">ミュージック</span></button>
         </div>
@@ -1906,14 +1903,14 @@
         </div>
         <section class="home-shorts-shelf hidden" id="homeShortsShelf" aria-label="ショート">
           <div class="home-shorts-heading">
-            <span class="home-shorts-mark"><span class="home-shelf-symbol" aria-hidden="true">play_circle</span>ショート</span>
+            <span class="home-shorts-mark"><span class="home-shelf-symbol" aria-hidden="true"><svg class="icon"><use href="#i-play"></use></svg></span>ショート</span>
             <button class="home-shorts-more" id="homeShortsMore" type="button">もっと見る</button>
           </div>
           <div class="home-shorts-grid" id="homeShortsGrid"></div>
         </section>
         <section class="home-shorts-shelf home-live-shelf hidden" id="homeLiveShelf" aria-label="ライブ配信">
           <div class="home-shorts-heading">
-            <span class="home-shorts-mark"><span class="home-shelf-symbol" aria-hidden="true">live_tv</span>ライブ</span>
+            <span class="home-shorts-mark"><span class="home-shelf-symbol" aria-hidden="true"><svg class="icon"><use href="#i-monitor"></use></svg></span>ライブ</span>
             <button class="home-shorts-more" id="homeLiveMore" type="button">もっと見る</button>
           </div>
           <div class="home-shorts-grid" id="homeLiveGrid"></div>
@@ -2381,36 +2378,20 @@
     const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
       "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
     }[char]));
+    // ローカルSVGスプライトを使用。外部フォントの読み込み状態に依存しない。
     const GOOGLE_MATERIAL_ICONS = {
-      menu:"menu", play:"play_arrow", search:"search", home:"home", compass:"explore",
-      news:"newspaper", music:"music_note", pause:"pause", volume:"volume_up",
-      rewind10:"replay_10", forward10:"forward_10", close:"close", library:"video_library",
-      history:"history", users:"groups", clock:"schedule", more:"more_horiz",
-      like:"thumb_up", share:"share", alert:"warning", refresh:"refresh",
-      download:"download", x:"close", monitor:"desktop_windows", settings:"settings",
-      moon:"dark_mode", check:"check"
+      menu:"menu", play:"play", search:"search", home:"home", compass:"compass",
+      news:"news", music:"music", pause:"pause", volume:"volume",
+      rewind10:"rewind10", forward10:"forward10", close:"close", library:"library",
+      history:"history", users:"users", clock:"clock", more:"more",
+      like:"like", share:"share", alert:"alert", refresh:"refresh",
+      download:"download", x:"x", monitor:"monitor", settings:"settings",
+      moon:"moon", check:"check"
     };
-    const icon = (name, className = "icon") => `<span class="material-symbols-outlined ${className}" aria-hidden="true">${GOOGLE_MATERIAL_ICONS[name] || "circle"}</span>`;
-
-    function convertGoogleMaterialIcons(root = document) {
-      root.querySelectorAll?.('svg use[href^="#i-"]').forEach((use) => {
-        const svg = use.closest("svg");
-        if (!svg) return;
-        const name = use.getAttribute("href").slice(3);
-        const span = document.createElement("span");
-        span.className = `material-symbols-outlined ${svg.getAttribute("class") || "icon"}`;
-        span.setAttribute("aria-hidden", "true");
-        span.textContent = GOOGLE_MATERIAL_ICONS[name] || "circle";
-        svg.replaceWith(span);
-      });
-    }
-    const googleIconObserver = new MutationObserver((records) => {
-      for (const record of records) for (const node of record.addedNodes) {
-        if (node.nodeType === 1) convertGoogleMaterialIcons(node);
-      }
-    });
-    googleIconObserver.observe(document.body, { childList: true, subtree: true });
-    convertGoogleMaterialIcons(document);
+    const icon = (name, className = "icon") => {
+      const symbol = GOOGLE_MATERIAL_ICONS[name] || "alert";
+      return `<svg class="${className}" aria-hidden="true"><use href="#i-${symbol}"></use></svg>`;
+    };
 
     function getHealthOrder(preferredInstance = "") {
       try {
@@ -5981,28 +5962,17 @@
     }
 
     function armPlaybackWatchdog() {
+      // 読み込みに時間がかかっているだけで別ソースへ切り替えない。
+      // 実際の再生失敗は video の error イベントで検出する。
       clearTimeout(state.playbackWatchdog);
-      const player = $("#player");
-      const generation = state.playbackGeneration;
-      state.playbackWatchdog = setTimeout(() => {
-        state.playbackWatchdog = null;
-        if (generation === state.playbackGeneration && player.readyState < (state.playbackRequested ? 2 : 1)) {
-          retryPlaybackFromFallback();
-        }
-      }, 15000);
+      state.playbackWatchdog = null;
     }
 
     function armPlaybackStallWatchdog() {
+      // waiting / stalled は回線状況による一時停止でも発生するため、
+      // ここでは代替APIの検索を開始せず、ブラウザの再読み込みを待つ。
       clearTimeout(state.playbackStallWatchdog);
-      if (!state.playbackRequested) return;
-      const player = $("#player");
-      const generation = state.playbackGeneration;
-      state.playbackStallWatchdog = setTimeout(() => {
-        state.playbackStallWatchdog = null;
-        if (generation === state.playbackGeneration && state.playbackRequested && player.readyState < 3) {
-          retryPlaybackFromFallback();
-        }
-      }, 15000);
+      state.playbackStallWatchdog = null;
     }
 
     function streamQuality(stream) {
@@ -6139,6 +6109,7 @@
       }
       player.classList.remove("hidden");
       const generation = ++state.playbackGeneration;
+      player.dataset.sourceGeneration = String(generation);
       const wasPlaying = forceResume || (!player.paused && !player.ended);
       const currentTime = preservePosition ? player.currentTime : 0;
       state.currentStream = stream;
@@ -6418,17 +6389,32 @@
       }
     }
 
-    async function retryPlaybackFromFallback() {
+    function isCurrentPlaybackSource() {
+      const player = $("#player");
+      const streamUrl = state.currentStream?.url;
+      if (!player?.currentSrc || !streamUrl) return false;
+      try {
+        return new URL(player.currentSrc, location.href).href === new URL(streamUrl, location.href).href;
+      } catch (_) {
+        return player.currentSrc === streamUrl;
+      }
+    }
+
+    async function retryPlaybackFromFallback(allowPendingSource = false) {
       const retry = state.playbackRetry;
       const videoId = state.currentVideo?.videoId;
       const player = $("#player");
+      // stopPlayback() や前の動画の遅延errorイベントでは再検索しない。
+      // watchdogからの呼び出しは、切替先URLの読み込み開始前でも再試行を許可する。
       if (!retry || !videoId || retry.videoId !== videoId || retry.busy) return;
+      if (!allowPendingSource && !isCurrentPlaybackSource()) return;
       const shouldResume = state.playbackRequested || (!player.paused && !player.ended);
       retry.failures = (retry.failures || 0) + 1;
       if (retry.failures % 2 === 0) state.currentPlaybackCandidates = [];
       retry.busy = true;
       clearPlaybackWatchdogs();
-      setPlayerLoading(true, "別のAPI・動画ソースを自動検索中…");
+      setPlayerLoading(true, "再生エラーが発生したため、代替ソースを確認中…");
+      let providerAttempts = 0;
       try {
         while (state.playbackRetry === retry && state.route === "watch" && state.currentVideo?.videoId === videoId) {
           const nextStream = state.currentPlaybackCandidates.find((stream) =>
@@ -6444,6 +6430,8 @@
             return;
           }
 
+          if (providerAttempts >= 8) break;
+          providerAttempts += 1;
           const raw = await api(`videos/${encodeURIComponent(videoId)}?local=true`, {
             excludedProviders: retry.attemptedProviders
           });
@@ -6471,6 +6459,11 @@
           setPlayerStream(fallbackStream, true, shouldResume);
           showToast("別のAPI・インスタンスへ自動切替しました");
           return;
+        }
+        if (state.playbackRetry === retry && state.currentVideo?.videoId === videoId) {
+          setPlayerLoading(false);
+          setStatus("error", "再生可能な動画ソースが見つかりませんでした");
+          showToast("利用可能な動画ソースがありませんでした");
         }
       } catch (error) {
         if (error.name !== "AbortError") {
@@ -7314,6 +7307,7 @@
     });
     $("#player").addEventListener("error", () => {
       setPlayerLoading(false);
+      if (!isCurrentPlaybackSource()) return;
       retryPlaybackFromFallback();
     });
     $("#audioPlayer").addEventListener("error", () => {
