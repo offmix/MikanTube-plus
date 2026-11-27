@@ -6181,7 +6181,7 @@
           if (generation !== state.playbackGeneration || state.hlsPlayer !== hls) return;
           if (!data?.fatal) return;
           if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-            setPlayerLoading(true, "ライブ配信への接続を再試行中…");
+            setPlayerLoading(true, isHlsLive ? "ライブ配信への接続を再試行中…" : "動画ストリームへの接続を再試行中…");
             try { hls.startLoad(); } catch (_) {}
           } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
             try { hls.recoverMediaError(); } catch (_) {}
@@ -6636,6 +6636,7 @@
 
     async function openVideo(videoId, playlistId = "", musicMode = false, playlistIndex = -1, forceAutoPlay = false) {
       const requestedVideoUrl = String(videoId || "");
+      const openedFromLive = state.route === "live" || (Array.isArray(state.homeLiveItems) && state.homeLiveItems.some((entry) => String(entry?.videoId || entry?.id || "") === requestedVideoUrl && (entry.liveNow || entry.isLive || entry.type === "live")));
       const shortsMatch = requestedVideoUrl.match(/(?:youtube\.com\/shorts\/|youtu\.be\/)([a-zA-Z0-9_-]{11})/i);
       const watchMatch = requestedVideoUrl.match(/[?&]v=([a-zA-Z0-9_-]{11})/i);
       if (shortsMatch) videoId = shortsMatch[1];
@@ -6735,6 +6736,24 @@
           return;
         }
         const raw = await api(`videos/${encodeURIComponent(videoId)}?local=true`);
+        // ライブ一覧から開いた動画はWorkerから最新のHLSライブマニフェストを取得する。
+        // マニフェストは期限付きURLなので、再生開始時に毎回取得する。
+        if (!musicMode && openedFromLive && readSettings().noCookiePlayback !== true) {
+          try {
+            const liveEndpoint = new URL("/stream", YOUTUBE_JS_API);
+            liveEndpoint.searchParams.set("id", videoId);
+            const liveResponse = await fetch(liveEndpoint.href, { headers: { "Accept": "application/json" } });
+            const livePayload = await liveResponse.json();
+            if (liveResponse.ok && livePayload?.success === true && typeof livePayload.hlsUrl === "string") {
+              raw.hlsUrl = livePayload.hlsUrl;
+              raw.isLiveContent = true;
+            } else {
+              console.warn("Live HLS unavailable:", livePayload?.message || livePayload?.error || liveResponse.status);
+            }
+          } catch (liveError) {
+            console.warn("Live HLS lookup failed:", liveError);
+          }
+        }
         if (musicMode && raw && typeof raw === "object") {
           ["description", "descriptionHtml", "descriptionText", "shortDescription", "comments", "commentCount", "commentsCount", "recommendedVideos"].forEach((key) => delete raw[key]);
         }
@@ -6743,11 +6762,16 @@
         const normalized = normalizeItem(raw);
         const item = musicMode ? { videoId: normalized.videoId, title: normalized.title, author: normalized.author, videoThumbnails: normalized.videoThumbnails } : normalized;
         const noCookiePlayback = readSettings().noCookiePlayback === true && !musicMode;
-        const liveManifest = !noCookiePlayback && !musicMode ? getLiveManifest(raw) : "";
-        const isLiveVideo = Boolean(
-          liveManifest || item.liveNow || item.isLive || item.type === "live" ||
+        // HLS URLが存在するだけではライブとは限らない。
+        // 通常動画やShortsに混入したHLS URLをライブ再生として扱わない。
+        const rawIsLive = Boolean(
+          openedFromLive || item.liveNow || item.isLive || item.type === "live" ||
           raw.isLiveContent === true || raw.isLiveNow === true || raw.liveNow === true || raw.isLive === true
         );
+        const liveManifest = !noCookiePlayback && !musicMode && rawIsLive
+          ? getLiveManifest(raw)
+          : "";
+        const isLiveVideo = Boolean(liveManifest || rawIsLive);
         const liveStream = liveManifest ? {
           url: liveManifest,
           type: "application/vnd.apple.mpegurl",
