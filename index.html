@@ -1753,6 +1753,7 @@
       .shorts-volume-control input { width:65px; }
     }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.6.15/dist/hls.min.js"></script>
 </head>
 <body>
   <svg width="0" height="0" class="sr-only" aria-hidden="true">
@@ -2351,6 +2352,8 @@
       currentPlaybackCandidates: [],
       currentStream: null,
       currentAudioStream: null,
+      hlsPlayer: null,
+      livePlayback: false,
       downloadStream: null,
       downloadAudioStream: null,
       playbackRetry: null,
@@ -2592,7 +2595,8 @@
         ...videoStreams.filter((stream) => stream.videoOnly === true).map((stream) => toFormat(stream, "video")),
         ...audioStreams.map((stream) => toFormat(stream, "audio"))
       ].filter(Boolean);
-      if (!formatStreams.length && !adaptiveFormats.some((stream) => stream.type.startsWith("video/"))) {
+      const hasLiveManifest = Boolean(video.hls || video.hlsUrl || video.hlsManifestUrl || video.dash || video.dashUrl);
+      if (!formatStreams.length && !adaptiveFormats.some((stream) => stream.type.startsWith("video/")) && !hasLiveManifest) {
         throw new Error("Pipedから再生可能な動画ストリームが返りませんでした");
       }
       const item = normalizePipedItem({
@@ -3454,9 +3458,9 @@
       return Math.round(amount * multiplier);
     }
 
-    async function fetchYouTubeJsShorts(query = "ショート", signal = new AbortController().signal, continuation = "") {
+    async function fetchYouTubeJsShorts(query = "", signal = new AbortController().signal, continuation = "") {
       const endpoint = new URL("/shorts", YOUTUBE_JS_API);
-      endpoint.searchParams.set("q", query || "ショート");
+      // Shorts専用フィードを取得する。検索語「ショート」は送信しない。
       if (continuation) endpoint.searchParams.set("continuation", continuation);
       const controller = new AbortController();
       const abort = () => controller.abort();
@@ -4586,7 +4590,7 @@
       renderSkeleton(12);
       history.replaceState(null, "", `#shorts?q=${encodeURIComponent(state.shortsQuery)}`);
       try {
-        const result = await fetchYouTubeJsShorts(state.shortsQuery, new AbortController().signal);
+        const result = await fetchYouTubeJsShorts("", new AbortController().signal);
         state.lastItems = uniqueVideoItems(result.videos || []);
         state.homeItems = state.lastItems.slice();
         state.shortsItems = state.homeItems.slice();
@@ -4614,7 +4618,7 @@
       button.disabled = true;
       button.textContent = "読み込み中…";
       try {
-        const result = await fetchYouTubeJsShorts(state.shortsQuery || "ショート", new AbortController().signal, state.shortsContinuation);
+        const result = await fetchYouTubeJsShorts("", new AbortController().signal, state.shortsContinuation);
         const fresh = (result.videos || []).filter(item => item.videoId && !state.shortsSeenIds.has(item.videoId));
         fresh.forEach(item => state.shortsSeenIds.add(item.videoId));
         state.shortsItems = [...state.shortsItems, ...fresh];
@@ -5903,6 +5907,11 @@
 
     function stopPlayback() {
       const player = $("#player");
+      if (state.hlsPlayer) {
+        try { state.hlsPlayer.destroy(); } catch (_) {}
+        state.hlsPlayer = null;
+      }
+      state.livePlayback = false;
       const audio = $("#audioPlayer");
       const noCookiePlayer = $("#noCookiePlayer");
       state.playbackGeneration += 1;
@@ -5992,6 +6001,26 @@
 
     function qualityNumber(stream) {
       return Number(streamQuality(stream).match(/\d+/)?.[0] || 0);
+    }
+
+    function getLiveManifest(video) {
+      if (!video || typeof video !== "object") return "";
+      const candidates = [
+        video.hlsUrl, video.hls, video.hlsManifestUrl, video.hls_manifest_url,
+        video.liveHlsUrl, video.liveManifestUrl,
+        video.streamingData?.hlsManifestUrl,
+        video.streaming_data?.hls_manifest_url,
+        video.streamingData?.hlsUrl,
+        video.streaming_data?.hlsUrl
+      ];
+      for (const candidate of candidates) {
+        if (typeof candidate !== "string" || !candidate.trim()) continue;
+        try {
+          const url = new URL(candidate.trim());
+          if (url.protocol === "https:" && /\.m3u8(?:$|[?#])/i.test(url.href)) return url.href;
+        } catch (_) {}
+      }
+      return "";
     }
 
     function getQualityStreams(video, preserveSameQuality = false) {
@@ -6107,38 +6136,81 @@
         noCookiePlayer.src = "about:blank";
         noCookiePlayer.classList.add("hidden");
       }
+      if (state.hlsPlayer) {
+        try { state.hlsPlayer.destroy(); } catch (_) {}
+        state.hlsPlayer = null;
+      }
       player.classList.remove("hidden");
       const generation = ++state.playbackGeneration;
       player.dataset.sourceGeneration = String(generation);
       const wasPlaying = forceResume || (!player.paused && !player.ended);
       const currentTime = preservePosition ? player.currentTime : 0;
+      const isHlsLive = Boolean(stream?._hls);
+      state.livePlayback = isHlsLive;
       state.currentStream = stream;
       if (stream?.url && state.playbackRetry) state.playbackRetry.triedStreamUrls.add(stream.url);
       clearPlaybackWatchdogs();
-      setPlayerLoading(true, preservePosition ? "画質を切り替え中…" : "動画を読み込み中…");
-      if (stream._progressive || !state.currentAudioStream) {
-        audio.pause();
-        audio.removeAttribute("src");
-        audio.load();
-      } else {
-        audio.src = state.currentAudioStream.url;
-        audio.load();
-        audio.volume = player.volume;
-        audio.muted = player.muted;
-        audio.playbackRate = player.playbackRate;
-      }
+      setPlayerLoading(true, isHlsLive ? "ライブ配信に接続中…" : (preservePosition ? "画質を切り替え中…" : "動画を読み込み中…"));
+
+      audio.pause();
+      audio.removeAttribute("src");
+      audio.load();
+
       player.addEventListener("loadedmetadata", () => {
         if (generation !== state.playbackGeneration || state.currentStream !== stream) return;
-        if (preservePosition && Number.isFinite(currentTime)) {
+        // HLSライブはプレイリストの最新位置から再生する。固定時刻へ戻さない。
+        if (!isHlsLive && preservePosition && Number.isFinite(currentTime)) {
           player.currentTime = Math.min(currentTime, Number.isFinite(player.duration) ? player.duration : currentTime);
         }
-        syncAudioToVideo();
         if (wasPlaying || (!preservePosition && readSettings().autoPlay === true)) {
           player.play().catch(() => showToast("自動再生できませんでした。再生ボタンを押してください"));
         }
       }, { once: true });
-      player.src = stream.url;
-      player.load();
+
+      if (isHlsLive && window.Hls && Hls.isSupported()) {
+        const hls = new Hls({
+          enableWorker: false,
+          lowLatencyMode: true,
+          liveSyncDurationCount: 3,
+          liveMaxLatencyDurationCount: 10,
+          maxLiveSyncPlaybackRate: 1.2,
+          backBufferLength: 30
+        });
+        state.hlsPlayer = hls;
+        hls.on(Hls.Events.ERROR, (_event, data) => {
+          if (generation !== state.playbackGeneration || state.hlsPlayer !== hls) return;
+          if (!data?.fatal) return;
+          if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+            setPlayerLoading(true, "ライブ配信への接続を再試行中…");
+            try { hls.startLoad(); } catch (_) {}
+          } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+            try { hls.recoverMediaError(); } catch (_) {}
+          } else {
+            setPlayerLoading(false);
+            showToast("ライブ配信の再生が中断されました。ページを再読み込みしてください");
+          }
+        });
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          if (generation !== state.playbackGeneration || state.hlsPlayer !== hls) return;
+          setPlayerLoading(false);
+          if (wasPlaying || readSettings().autoPlay === true) {
+            player.play().catch(() => showToast("再生ボタンを押してライブを開始してください"));
+          }
+        });
+        hls.loadSource(stream.url);
+        hls.attachMedia(player);
+      } else if (isHlsLive && player.canPlayType("application/vnd.apple.mpegurl")) {
+        // Safariなど、ブラウザ自身がHLSを再生できる場合。
+        player.src = stream.url;
+        player.load();
+      } else if (isHlsLive) {
+        setPlayerLoading(false);
+        showToast("このブラウザでHLSライブ再生を利用できません");
+        return;
+      } else {
+        player.src = stream.url;
+        player.load();
+      }
       armPlaybackWatchdog();
     }
 
@@ -6671,13 +6743,31 @@
         const normalized = normalizeItem(raw);
         const item = musicMode ? { videoId: normalized.videoId, title: normalized.title, author: normalized.author, videoThumbnails: normalized.videoThumbnails } : normalized;
         const noCookiePlayback = readSettings().noCookiePlayback === true && !musicMode;
-        const streams = noCookiePlayback ? [] : getQualityStreams(raw);
-        const playbackCandidates = noCookiePlayback ? [] : getQualityStreams(raw, true);
-        state.currentAudioStream = noCookiePlayback ? null : getAudioStream(raw);
-        state.downloadStream = noCookiePlayback ? null : getDownloadStream(streams);
+        const liveManifest = !noCookiePlayback && !musicMode ? getLiveManifest(raw) : "";
+        const isLiveVideo = Boolean(
+          liveManifest || item.liveNow || item.isLive || item.type === "live" ||
+          raw.isLiveContent === true || raw.isLiveNow === true || raw.liveNow === true || raw.isLive === true
+        );
+        const liveStream = liveManifest ? {
+          url: liveManifest,
+          type: "application/vnd.apple.mpegurl",
+          quality: "LIVE",
+          qualityLabel: "LIVE",
+          resolution: "LIVE",
+          container: "HLS",
+          bitrate: 0,
+          _progressive: true,
+          _hls: true,
+          _live: true
+        } : null;
+        const streams = noCookiePlayback ? [] : (liveStream ? [liveStream] : getQualityStreams(raw));
+        const playbackCandidates = noCookiePlayback ? [] : (liveStream ? [liveStream] : getQualityStreams(raw, true));
+        state.currentAudioStream = noCookiePlayback || liveStream ? null : getAudioStream(raw);
+        state.downloadStream = noCookiePlayback || liveStream ? null : getDownloadStream(streams);
         state.downloadAudioStream = state.currentAudioStream;
-        const progressive = streams.filter((candidate) => candidate._progressive);
-        const stream = progressive.find((candidate) => qualityNumber(candidate) <= 720 && qualityNumber(candidate) > 0)
+        const progressive = streams.filter((candidate) => candidate._progressive && !candidate._hls);
+        const stream = liveStream
+          || progressive.find((candidate) => qualityNumber(candidate) <= 720 && qualityNumber(candidate) > 0)
           || progressive[0]
           || streams.find((candidate) => qualityNumber(candidate) <= 720 && qualityNumber(candidate) > 0)
           || streams[0];
