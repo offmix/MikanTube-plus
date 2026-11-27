@@ -51,7 +51,6 @@ Github Pages以外の公式URL
 )
  - [moon.com版](http://mikan-plus.mooo.com/) (現在停止中)
  - [devs.surf版](https://mikan-plus.devs.surf/) (現在停止中)
-  ### 注意
   ショート動画機能、ライブ機能は万全でない可能性があります。
    ##### 【RECJ公認】登録番号:A0005
  ---
