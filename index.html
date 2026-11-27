@@ -6177,17 +6177,26 @@
           backBufferLength: 30
         });
         state.hlsPlayer = hls;
+        let hlsNetworkRetries = 0;
         hls.on(Hls.Events.ERROR, (_event, data) => {
           if (generation !== state.playbackGeneration || state.hlsPlayer !== hls) return;
           if (!data?.fatal) return;
           if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-            setPlayerLoading(true, isHlsLive ? "ライブ配信への接続を再試行中…" : "動画ストリームへの接続を再試行中…");
-            try { hls.startLoad(); } catch (_) {}
+            hlsNetworkRetries += 1;
+            if (hlsNetworkRetries <= 3) {
+              setPlayerLoading(true, isHlsLive ? "ライブ配信への接続を再試行中…" : "動画ストリームへの接続を再試行中…");
+              try { hls.startLoad(); } catch (_) {}
+            } else {
+              setPlayerLoading(false);
+              setStatus("error", isHlsLive ? "LIVEの配信データを取得できませんでした" : "動画ストリームを取得できませんでした");
+              showToast(isHlsLive ? "LIVEの接続に失敗しました。Workerの /stream 応答を確認してください" : "動画ストリームへの接続に失敗しました");
+            }
           } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
             try { hls.recoverMediaError(); } catch (_) {}
           } else {
             setPlayerLoading(false);
-            showToast("ライブ配信の再生が中断されました。ページを再読み込みしてください");
+            setStatus("error", isHlsLive ? "LIVEの再生が中断されました" : "動画の再生が中断されました");
+            showToast(isHlsLive ? "LIVEの再生が中断されました" : "動画の再生が中断されました");
           }
         });
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
@@ -6636,7 +6645,14 @@
 
     async function openVideo(videoId, playlistId = "", musicMode = false, playlistIndex = -1, forceAutoPlay = false) {
       const requestedVideoUrl = String(videoId || "");
-      const openedFromLive = state.route === "live" || (Array.isArray(state.homeLiveItems) && state.homeLiveItems.some((entry) => String(entry?.videoId || entry?.id || "") === requestedVideoUrl && (entry.liveNow || entry.isLive || entry.type === "live")));
+      // 「LIVE画面にいた」というだけで通常動画をLIVE扱いしない。
+      // 実際にLIVE一覧から選ばれたIDだけをLIVEとして判定する。
+      const openedFromLive = [state.homeLiveItems, state.homeItems].some((list) =>
+        Array.isArray(list) && list.some((entry) =>
+          String(entry?.videoId || entry?.id || "") === requestedVideoUrl &&
+          (entry.liveNow === true || entry.isLive === true || entry.type === "live")
+        )
+      );
       const shortsMatch = requestedVideoUrl.match(/(?:youtube\.com\/shorts\/|youtu\.be\/)([a-zA-Z0-9_-]{11})/i);
       const watchMatch = requestedVideoUrl.match(/[?&]v=([a-zA-Z0-9_-]{11})/i);
       if (shortsMatch) videoId = shortsMatch[1];
@@ -6738,19 +6754,22 @@
         const raw = await api(`videos/${encodeURIComponent(videoId)}?local=true`);
         // ライブ一覧から開いた動画はWorkerから最新のHLSライブマニフェストを取得する。
         // マニフェストは期限付きURLなので、再生開始時に毎回取得する。
+        let liveStreamError = "";
         if (!musicMode && openedFromLive && readSettings().noCookiePlayback !== true) {
           try {
             const liveEndpoint = new URL("/stream", YOUTUBE_JS_API);
             liveEndpoint.searchParams.set("id", videoId);
             const liveResponse = await fetch(liveEndpoint.href, { headers: { "Accept": "application/json" } });
             const livePayload = await liveResponse.json();
-            if (liveResponse.ok && livePayload?.success === true && typeof livePayload.hlsUrl === "string") {
+            if (liveResponse.ok && livePayload?.success === true && typeof livePayload.hlsUrl === "string" && livePayload.hlsUrl) {
               raw.hlsUrl = livePayload.hlsUrl;
               raw.isLiveContent = true;
             } else {
-              console.warn("Live HLS unavailable:", livePayload?.message || livePayload?.error || liveResponse.status);
+              liveStreamError = livePayload?.message || livePayload?.error || `HTTP ${liveResponse.status}`;
+              console.warn("Live HLS unavailable:", liveStreamError);
             }
           } catch (liveError) {
+            liveStreamError = liveError?.message || String(liveError);
             console.warn("Live HLS lookup failed:", liveError);
           }
         }
@@ -6771,6 +6790,9 @@
         const liveManifest = !noCookiePlayback && !musicMode && rawIsLive
           ? getLiveManifest(raw)
           : "";
+        if (openedFromLive && !noCookiePlayback && !liveManifest) {
+          throw new Error(`LIVEの配信URLを取得できませんでした${liveStreamError ? `: ${liveStreamError}` : "。Workerの /stream 応答を確認してください"}`);
+        }
         const isLiveVideo = Boolean(liveManifest || rawIsLive);
         const liveStream = liveManifest ? {
           url: liveManifest,
@@ -6887,13 +6909,17 @@
       } catch (error) {
         if (error.name === "AbortError") return;
         setPlayerLoading(false);
-        $("#watchTitle").textContent = "動画を再生できません";
+        const errorMessage = String(error?.message || error || "不明なエラー");
+        $("#watchTitle").textContent = openedFromLive ? "LIVEを再生できません" : "動画を再生できません";
         if (!musicMode) {
-          $("#watchDescription").textContent = "この動画の再生URLを取得できませんでした。別の動画をお試しください。";
+          $("#watchDescription").textContent = openedFromLive
+            ? `LIVEの配信ストリームを取得できませんでした。\n原因: ${errorMessage}`
+            : `この動画の再生URLを取得できませんでした。\n原因: ${errorMessage}`;
           $("#commentsStatus").textContent = "動画を取得できないため、コメントを表示できません。";
           $("#commentsStatus").hidden = false;
         }
-        showToast("動画の取得に失敗しました");
+        setStatus("error", errorMessage);
+        showToast(openedFromLive ? "LIVEの接続に失敗しました" : "動画の取得に失敗しました");
       }
     }
 
