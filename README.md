@@ -9,6 +9,9 @@ HTML一枚で動き軽量で本家YouTubeに匹敵する機能を目指してい
 * タブ偽装:Google ClassroomやGoogle検索のタブに偽装できます。また、カスタムにも対応。
 * 高度なおすすめ機能:視聴履歴や検索語句からおすすめを表示する設定項目を用意。
 ## 更新履歴
+### v.1.2.3
+ - ショートの取得方法を少し変更
+ - ライブの改良(まだ見れない)
 ### v1.2.1
  - ホームにもショート動画を5本表示するように。
  - タブ偽装のGoogleアイコンをより本物に近づけました。
@@ -44,12 +47,12 @@ Github Pages以外の公式URL
  - [html.cafe版](https://html.cafe/xa9e50f42)
  - [GAS版](https://script.google.com/macros/s/AKfycbx90qdu-36kfACwy85YHqgJMq0HVhgpZDXxtRbbLoQdRbxyAGNVoluvwiBEB06DqUsT/exec
 )
- - [gob.mx版](http://mikan-plus.hospitaldelninodif.gob.mx/
+ - [gob.mx版](http://mikan-plus.hospitaldelninodif.gob.mx/) (現在停止中)
 )
- - [moon.com版](http://mikan-plus.mooo.com/)
- - [devs.surf版](https://mikan-plus.devs.surf/)
-  ### ショート動画について
-  ショート動画機能は万全でない可能性があります。
+ - [moon.com版](http://mikan-plus.mooo.com/) (現在停止中)
+ - [devs.surf版](https://mikan-plus.devs.surf/) (現在停止中)
+  ### 注意
+  ショート動画機能、ライブ機能は万全でない可能性があります。
    ##### 【RECJ公認】登録番号:A0005
  ---
 
